@@ -2,9 +2,12 @@
  * Service for AI-powered project selection for resumes.
  */
 
+import { logger } from "@infra/logger";
 import type { JsonSchemaDefinition } from "./llm/types";
 import { createConfiguredLlmService, resolveLlmModel } from "./modelSelection";
 import type { ResumeProjectSelectionItem } from "./resumeProjects";
+
+const PROJECT_SELECTION_TRACE = "PROJECT_SELECTION_TRACE";
 
 /** JSON schema for project selection response */
 const PROJECT_SELECTION_SCHEMA: JsonSchemaDefinition = {
@@ -29,12 +32,40 @@ export async function pickProjectIdsForJob(args: {
   desiredCount: number;
 }): Promise<string[]> {
   const desiredCount = Math.max(0, Math.floor(args.desiredCount));
-  if (desiredCount === 0) return [];
+  if (desiredCount === 0) {
+    logger.info(`${PROJECT_SELECTION_TRACE} skipped selector`, {
+      marker: PROJECT_SELECTION_TRACE,
+      phase: "pickProjectIdsForJob.skipped",
+      reason: "desired-count-zero",
+      requestedDesiredCount: args.desiredCount,
+      eligibleProjectCount: args.eligibleProjects.length,
+      eligibleProjectIds: args.eligibleProjects.map((project) => project.id),
+    });
+    return [];
+  }
 
   const eligibleIds = new Set(args.eligibleProjects.map((p) => p.id));
-  if (eligibleIds.size === 0) return [];
+  if (eligibleIds.size === 0) {
+    logger.info(`${PROJECT_SELECTION_TRACE} skipped selector`, {
+      marker: PROJECT_SELECTION_TRACE,
+      phase: "pickProjectIdsForJob.skipped",
+      reason: "no-eligible-projects",
+      requestedDesiredCount: args.desiredCount,
+      desiredCount,
+      eligibleProjectCount: args.eligibleProjects.length,
+    });
+    return [];
+  }
 
   const model = await resolveLlmModel("projectSelection");
+  logger.info(`${PROJECT_SELECTION_TRACE} calling selector model`, {
+    marker: PROJECT_SELECTION_TRACE,
+    phase: "pickProjectIdsForJob.llm.start",
+    model,
+    desiredCount,
+    eligibleProjectCount: args.eligibleProjects.length,
+    eligibleProjectIds: args.eligibleProjects.map((project) => project.id),
+  });
 
   const prompt = buildProjectSelectionPrompt({
     jobDescription: args.jobDescription,
@@ -50,11 +81,22 @@ export async function pickProjectIdsForJob(args: {
   });
 
   if (!result.success) {
-    return fallbackPickProjectIds(
+    const fallback = fallbackPickProjectIds(
       args.jobDescription,
       args.eligibleProjects,
       desiredCount,
     );
+    logger.warn(`${PROJECT_SELECTION_TRACE} selector model failed`, {
+      marker: PROJECT_SELECTION_TRACE,
+      phase: "pickProjectIdsForJob.llm.failed",
+      model,
+      desiredCount,
+      eligibleProjectCount: args.eligibleProjects.length,
+      fallbackProjectIds: fallback,
+      fallbackProjectCount: fallback.length,
+      error: result.error ?? "unknown",
+    });
+    return fallback;
   }
 
   const selectedProjectIds = Array.isArray(result.data?.selectedProjectIds)
@@ -76,13 +118,34 @@ export async function pickProjectIdsForJob(args: {
   }
 
   if (unique.length === 0) {
-    return fallbackPickProjectIds(
+    const fallback = fallbackPickProjectIds(
       args.jobDescription,
       args.eligibleProjects,
       desiredCount,
     );
+    logger.warn(`${PROJECT_SELECTION_TRACE} selector returned no valid ids`, {
+      marker: PROJECT_SELECTION_TRACE,
+      phase: "pickProjectIdsForJob.llm.empty",
+      model,
+      desiredCount,
+      eligibleProjectCount: args.eligibleProjects.length,
+      rawSelectedProjectIds: selectedProjectIds,
+      fallbackProjectIds: fallback,
+      fallbackProjectCount: fallback.length,
+    });
+    return fallback;
   }
 
+  logger.info(`${PROJECT_SELECTION_TRACE} selector returned ids`, {
+    marker: PROJECT_SELECTION_TRACE,
+    phase: "pickProjectIdsForJob.llm.success",
+    model,
+    desiredCount,
+    eligibleProjectCount: args.eligibleProjects.length,
+    rawSelectedProjectIds: selectedProjectIds,
+    selectedProjectIds: unique,
+    selectedProjectCount: unique.length,
+  });
   return unique;
 }
 
