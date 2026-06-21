@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import Database from "better-sqlite3";
+import { PGlite } from "@electric-sql/pglite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as backup from "./index";
 
@@ -14,30 +14,27 @@ import { getDataDir } from "@server/config/dataDir";
 
 describe("Backup Service", () => {
   let tempDir: string;
-  let dbPath: string;
+  let pgClient: PGlite | null = null;
 
   beforeEach(async () => {
     // Create temp directory for tests
     tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "backup-test-"));
-    dbPath = path.join(tempDir, "jobs.db");
+    const pgdataPath = path.join(tempDir, "pgdata");
 
-    // Create a real SQLite database file for backup() to work.
-    const db = new Database(dbPath);
-    try {
-      db.exec(
-        [
-          "PRAGMA journal_mode = DELETE;",
-          "CREATE TABLE IF NOT EXISTS test_items (id INTEGER PRIMARY KEY, name TEXT NOT NULL);",
-          "DELETE FROM test_items;",
-          "INSERT INTO test_items (name) VALUES ('alpha');",
-        ].join("\n"),
-      );
-    } finally {
-      db.close();
-    }
+    // Initialize PGlite database
+    pgClient = new PGlite(pgdataPath);
+    await pgClient.exec(`
+      CREATE TABLE IF NOT EXISTS test_items (id SERIAL PRIMARY KEY, name TEXT NOT NULL);
+      INSERT INTO test_items (name) VALUES ('alpha');
+    `);
 
     // Mock getDataDir to return temp directory
     vi.mocked(getDataDir).mockReturnValue(tempDir);
+
+    // Mock @server/db/index client to be our pgClient
+    vi.doMock("@server/db/index", () => ({
+      client: pgClient,
+    }));
 
     // Reset backup settings
     backup.setBackupSettings({ enabled: false, hour: 2, maxCount: 5 });
@@ -45,6 +42,10 @@ describe("Backup Service", () => {
   });
 
   afterEach(async () => {
+    if (pgClient) {
+      await pgClient.close();
+      pgClient = null;
+    }
     // Clean up temp directory
     try {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
@@ -65,18 +66,16 @@ describe("Backup Service", () => {
       const backupPath = path.join(tempDir, filename);
       expect(fs.existsSync(backupPath)).toBe(true);
 
-      // Check backup is a valid SQLite database with expected data
-      const backupDb = new Database(backupPath, {
-        readonly: true,
-        fileMustExist: true,
+      // Check backup is a valid PGlite database with expected data
+      const fileData = await fs.promises.readFile(backupPath);
+      const backupDb = new PGlite({
+        loadDataDir: new Blob([fileData]),
       });
       try {
-        const row = backupDb
-          .prepare("SELECT name FROM test_items ORDER BY id LIMIT 1")
-          .get() as { name: string } | undefined;
-        expect(row?.name).toBe("alpha");
+        const res = await backupDb.query("SELECT name FROM test_items ORDER BY id LIMIT 1") as any;
+        expect(res.rows[0]?.name).toBe("alpha");
       } finally {
-        backupDb.close();
+        await backupDb.close();
       }
     });
 
@@ -92,24 +91,22 @@ describe("Backup Service", () => {
       const backupPath = path.join(tempDir, filename);
       expect(fs.existsSync(backupPath)).toBe(true);
 
-      const backupDb = new Database(backupPath, {
-        readonly: true,
-        fileMustExist: true,
+      const fileData = await fs.promises.readFile(backupPath);
+      const backupDb = new PGlite({
+        loadDataDir: new Blob([fileData]),
       });
       try {
-        const count = backupDb
-          .prepare("SELECT COUNT(*) as count FROM test_items")
-          .get() as { count: number };
-        expect(count.count).toBe(1);
+        const res = await backupDb.query("SELECT COUNT(*) as count FROM test_items") as any;
+        expect(Number(res.rows[0]?.count)).toBe(1);
       } finally {
-        backupDb.close();
+        await backupDb.close();
       }
     });
 
     it("should add a suffix when manual backup name collides", async () => {
       const prevTz = process.env.TZ;
       process.env.TZ = "UTC";
-      // Only fake Date to keep async I/O (used by better-sqlite3 backup) real.
+      // Only fake Date to keep async I/O real.
       vi.useFakeTimers({ toFake: ["Date"] });
       try {
         vi.setSystemTime(new Date("2026-01-15T12:30:45.000Z"));
@@ -131,8 +128,13 @@ describe("Backup Service", () => {
     });
 
     it("should throw error if database does not exist", async () => {
-      // Delete the database
-      await fs.promises.unlink(dbPath);
+      // Close and delete the database directory
+      if (pgClient) {
+        await pgClient.close();
+        pgClient = null;
+      }
+      const pgdataPath = path.join(tempDir, "pgdata");
+      await fs.promises.rm(pgdataPath, { recursive: true, force: true });
 
       await expect(backup.createBackup("auto")).rejects.toThrow(
         "Database file not found",

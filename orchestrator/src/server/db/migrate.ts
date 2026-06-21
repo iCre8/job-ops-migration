@@ -84,17 +84,21 @@ async function main() {
   }
 }
 
-main()
-  .catch((err) => {
+export const migrationPromise = (async () => {
+  try {
+    await main();
+  } catch (err) {
     console.error("Migration failed:", err);
     if (!isTest) {
       process.exit(1);
     } else {
       throw err;
     }
-  })
-  .finally(async () => {
+  } finally {
     if (!isTest) {
       await closeDb();
     }
-  });
+  }
+})();
+
+await migrationPromise;

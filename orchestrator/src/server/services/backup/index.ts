@@ -126,6 +126,17 @@ function getBackupType(filename: string): "auto" | "manual" | null {
   return null;
 }
 
+function databaseExists(): boolean {
+  const dbPath = getDbPath();
+  const pgdataPath = path.join(getDataDir(), "pgdata");
+
+  const isSQLite = fs.existsSync(dbPath) && !fs.statSync(dbPath).isDirectory();
+  const isPGlite = fs.existsSync(pgdataPath) && fs.statSync(pgdataPath).isDirectory();
+  const isPostgres = !isSQLite && !isPGlite && process.env.NODE_ENV !== "test" && !!process.env.DATABASE_URL;
+
+  return isSQLite || isPGlite || isPostgres;
+}
+
 export async function createBackup(type: "auto" | "manual"): Promise<string> {
   const dbPath = getDbPath();
   const backupDir = getBackupDir();
@@ -134,7 +145,7 @@ export async function createBackup(type: "auto" | "manual"): Promise<string> {
   let backupPath = path.join(backupDir, filename);
   let reservedHandle: FileHandle | null = null;
 
-  if (!fs.existsSync(dbPath)) {
+  if (!databaseExists()) {
     throw new Error(`Database file not found: ${dbPath}`);
   }
 
@@ -183,15 +194,40 @@ export async function createBackup(type: "auto" | "manual"): Promise<string> {
 
   await reservedHandle.close();
 
-  let sqlite: SqliteDatabase | null = null;
-  try {
-    sqlite = new Database(dbPath, { readonly: true, fileMustExist: true });
-    await sqlite.backup(backupPath);
-  } catch (error) {
-    await fs.promises.unlink(backupPath).catch(() => undefined);
-    throw error;
-  } finally {
-    sqlite?.close();
+  const pgdataPath = path.join(getDataDir(), "pgdata");
+  const isSQLite = fs.existsSync(dbPath) && !fs.statSync(dbPath).isDirectory();
+
+  if (isSQLite) {
+    let sqlite: SqliteDatabase | null = null;
+    try {
+      sqlite = new Database(dbPath, { readonly: true, fileMustExist: true });
+      await sqlite.backup(backupPath);
+    } catch (error) {
+      await fs.promises.unlink(backupPath).catch(() => undefined);
+      throw error;
+    } finally {
+      sqlite?.close();
+    }
+  } else {
+    try {
+      const { client: dbClient } = await import("@server/db/index");
+      if (dbClient && typeof dbClient.dumpDataDir === "function") {
+        const blob = await dbClient.dumpDataDir();
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        await fs.promises.writeFile(backupPath, buffer);
+      } else {
+        // Postgres mode
+        const { exec } = await import("node:child_process");
+        const { promisify } = await import("node:util");
+        const execAsync = promisify(exec);
+        const databaseUrl = process.env.DATABASE_URL || "postgres://skillflow:skillflow@localhost:5432/jobops";
+        await execAsync(`pg_dump "${databaseUrl}" -F c -f "${backupPath}"`);
+      }
+    } catch (error) {
+      await fs.promises.unlink(backupPath).catch(() => undefined);
+      throw error;
+    }
   }
 
   logger.info("Created database backup", {

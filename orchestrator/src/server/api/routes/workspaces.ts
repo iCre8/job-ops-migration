@@ -35,7 +35,12 @@ function requireSystemAdmin(res: Response): boolean {
 
 function isUsernameConflictError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  return /UNIQUE constraint failed: users\.username/i.test(error.message);
+  const err = error as any;
+  return (
+    err.code === "23505" ||
+    /UNIQUE constraint failed: users\.username/i.test(err.message) ||
+    /duplicate key value violates unique constraint/i.test(err.message)
+  );
 }
 
 workspacesRouter.get(

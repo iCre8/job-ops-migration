@@ -142,9 +142,10 @@ export async function deletePipelineSearchPreset(id: string): Promise<number> {
         eq(pipelineSearchPresets.userId, userId),
         eq(pipelineSearchPresets.id, id),
       ),
-    );
+    )
+    .returning();
 
-  return result.changes;
+  return result.length;
 }
 
 export async function pipelineSearchPresetNameExists(input: {

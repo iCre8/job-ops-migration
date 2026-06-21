@@ -292,7 +292,7 @@ export async function listTracerLinkStatsByJob(
       isActive: tracerLinks.isActive,
       clicks: sql<number>`count(${tracerClickEvents.id})`,
       uniqueOpens: sql<number>`count(distinct ${tracerClickEvents.uniqueFingerprintHash})`,
-      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} = 1 then 1 else 0 end), 0)`,
+      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} then 1 else 0 end), 0)`,
       lastClickedAt: sql<number | null>`max(${tracerClickEvents.clickedAt})`,
     })
     .from(tracerLinks)
@@ -303,7 +303,16 @@ export async function listTracerLinkStatsByJob(
     .where(
       and(privateDataScopeFilter(tracerLinks), eq(tracerLinks.jobId, jobId)),
     )
-    .groupBy(tracerLinks.id)
+    .groupBy(
+      tracerLinks.id,
+      tracerLinks.token,
+      tracerLinks.sourcePath,
+      tracerLinks.sourceLabel,
+      tracerLinks.destinationUrl,
+      tracerLinks.createdAt,
+      tracerLinks.updatedAt,
+      tracerLinks.isActive,
+    )
     .orderBy(
       desc(sql`count(${tracerClickEvents.id})`),
       desc(sql`max(${tracerClickEvents.clickedAt})`),
@@ -345,7 +354,7 @@ export async function getTracerAnalyticsTotals(
     .select({
       clicks: sql<number>`count(${tracerClickEvents.id})`,
       uniqueOpens: sql<number>`count(distinct ${tracerClickEvents.uniqueFingerprintHash})`,
-      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} = 1 then 1 else 0 end), 0)`,
+      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} then 1 else 0 end), 0)`,
     })
     .from(tracerClickEvents)
     .innerJoin(tracerLinks, eq(tracerClickEvents.tracerLinkId, tracerLinks.id))
@@ -379,7 +388,7 @@ export async function getTracerAnalyticsTimeSeries(
       day: sql<string>`to_char(to_timestamp(${tracerClickEvents.clickedAt}), 'YYYY-MM-DD')`,
       clicks: sql<number>`count(${tracerClickEvents.id})`,
       uniqueOpens: sql<number>`count(distinct ${tracerClickEvents.uniqueFingerprintHash})`,
-      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} = 1 then 1 else 0 end), 0)`,
+      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} then 1 else 0 end), 0)`,
     })
     .from(tracerClickEvents)
     .innerJoin(tracerLinks, eq(tracerClickEvents.tracerLinkId, tracerLinks.id))
@@ -424,14 +433,14 @@ export async function getTracerAnalyticsTopJobs(
       employer: jobs.employer,
       clicks: sql<number>`count(${tracerClickEvents.id})`,
       uniqueOpens: sql<number>`count(distinct ${tracerClickEvents.uniqueFingerprintHash})`,
-      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} = 1 then 1 else 0 end), 0)`,
+      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} then 1 else 0 end), 0)`,
       lastClickedAt: sql<number | null>`max(${tracerClickEvents.clickedAt})`,
     })
     .from(tracerClickEvents)
     .innerJoin(tracerLinks, eq(tracerClickEvents.tracerLinkId, tracerLinks.id))
     .innerJoin(jobs, eq(tracerLinks.jobId, jobs.id))
     .where(filters.length > 0 ? and(...filters) : undefined)
-    .groupBy(jobs.id)
+    .groupBy(jobs.id, jobs.title, jobs.employer)
     .orderBy(
       desc(sql`count(${tracerClickEvents.id})`),
       desc(sql`max(${tracerClickEvents.clickedAt})`),
@@ -489,14 +498,23 @@ export async function getTracerAnalyticsTopLinks(
       destinationUrl: tracerLinks.destinationUrl,
       clicks: sql<number>`count(${tracerClickEvents.id})`,
       uniqueOpens: sql<number>`count(distinct ${tracerClickEvents.uniqueFingerprintHash})`,
-      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} = 1 then 1 else 0 end), 0)`,
+      botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} then 1 else 0 end), 0)`,
       lastClickedAt: sql<number | null>`max(${tracerClickEvents.clickedAt})`,
     })
     .from(tracerClickEvents)
     .innerJoin(tracerLinks, eq(tracerClickEvents.tracerLinkId, tracerLinks.id))
     .innerJoin(jobs, eq(tracerLinks.jobId, jobs.id))
     .where(filters.length > 0 ? and(...filters) : undefined)
-    .groupBy(tracerLinks.id)
+    .groupBy(
+      tracerLinks.id,
+      tracerLinks.token,
+      jobs.id,
+      jobs.title,
+      jobs.employer,
+      tracerLinks.sourcePath,
+      tracerLinks.sourceLabel,
+      tracerLinks.destinationUrl,
+    )
     .orderBy(
       desc(sql`count(${tracerClickEvents.id})`),
       desc(sql`max(${tracerClickEvents.clickedAt})`),

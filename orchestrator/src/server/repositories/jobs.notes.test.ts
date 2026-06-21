@@ -125,7 +125,7 @@ describe.sequential("jobs repository job notes", () => {
     const notesBeforeDelete = await jobsRepo.listJobNotes(job.id);
     expect(notesBeforeDelete).toHaveLength(1);
 
-    await db.delete(schema.jobs).where(eq(schema.jobs.id, job.id)).run();
+    await db.delete(schema.jobs).where(eq(schema.jobs.id, job.id));
 
     const notesAfterDelete = await jobsRepo.listJobNotes(job.id);
     expect(notesAfterDelete).toHaveLength(0);

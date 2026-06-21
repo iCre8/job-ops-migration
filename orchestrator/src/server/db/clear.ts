@@ -6,8 +6,8 @@ export async function clearDatabase(): Promise<{ jobsDeleted: number; runsDelete
     await db.delete(schema.stageEvents);
     await db.delete(schema.tasks);
     await db.delete(schema.interviews);
-    const jobsResult = await db.delete(schema.jobs);
-    const runsResult = await db.delete(schema.pipelineRuns);
+    const jobsResult = await db.delete(schema.jobs).returning();
+    const runsResult = await db.delete(schema.pipelineRuns).returning();
 
     console.log(
       `🗑️ Cleared database: ${jobsResult.length} jobs, ${runsResult.length} pipeline runs`,

@@ -57,7 +57,7 @@ describe.sequential("post-application message upsert transition semantics", () =
 
   afterEach(async () => {
     const { closeDb } = await import("../db/index");
-    closeDb();
+    await closeDb();
     await rm(tempDir, { recursive: true, force: true });
     vi.clearAllMocks();
   });

@@ -194,7 +194,8 @@ async function importMigrationsSilently(): Promise<void> {
   };
 
   try {
-    await import("@server/db/migrate");
+    const migrateModule = await import("@server/db/migrate");
+    await migrateModule.migrationPromise;
   } catch (err) {
     nativeConsoleError("MIGRATION THREW ERROR:", err);
     throw err;
@@ -294,14 +295,65 @@ export async function startServer(options?: {
   const { createApp } = await import("../../app");
   const { db, schema, closeDb } = await import("@server/db/index");
 
+  // Always seed the "test-user" for test auth bypass to satisfy foreign key constraints.
+  const { DEFAULT_TENANT_ID } = await import("@server/tenancy/constants");
+  const { eq } = await import("drizzle-orm");
+
+  const existingTestUser = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, "test-user"))
+    .limit(1);
+
+  if (existingTestUser.length === 0) {
+    const { hashPassword } = await import("@server/auth/password");
+    const { passwordHash, passwordSalt } = await hashPassword("test-password");
+    const now = new Date().toISOString();
+
+    // Ensure tenant exists
+    const tenantRows = await db
+      .select()
+      .from(schema.tenants)
+      .where(eq(schema.tenants.id, DEFAULT_TENANT_ID))
+      .limit(1);
+    if (tenantRows.length === 0) {
+      await db.insert(schema.tenants).values({
+        id: DEFAULT_TENANT_ID,
+        name: "Default Tenant",
+        slug: "default",
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await db.insert(schema.users).values({
+      id: "test-user",
+      username: "test",
+      displayName: "Test User",
+      passwordHash,
+      passwordSalt,
+      isSystemAdmin: true,
+      isDisabled: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await db.insert(schema.tenantMemberships).values({
+      id: "test-membership",
+      userId: "test-user",
+      tenantId: DEFAULT_TENANT_ID,
+      role: "owner",
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
   if (requiresLegacyBasicAuthSeed) {
     const rawUsername = envOverrides.BASIC_AUTH_USER!.trim();
     const username = rawUsername.toLowerCase();
     const password = envOverrides.BASIC_AUTH_PASSWORD!.trim();
     const { hashPassword } = await import("@server/auth/password");
     const { randomUUID } = await import("node:crypto");
-    const { DEFAULT_TENANT_ID } = await import("@server/tenancy/constants");
-    const { eq } = await import("drizzle-orm");
 
     const existing = await db
       .select()
@@ -364,7 +416,7 @@ export async function startServer(options?: {
 
 export async function stopServer(args: {
   server: Server;
-  closeDb: () => void;
+  closeDb: () => Promise<void>;
   tempDir?: string;
 }) {
   // Defensive: if startServer throws, callers may still run cleanup.
@@ -372,7 +424,7 @@ export async function stopServer(args: {
     await new Promise<void>((resolve) => args.server.close(() => resolve()));
   }
   if (args.closeDb) {
-    args.closeDb();
+    await args.closeDb();
   }
   if (args.tempDir) {
     await rm(args.tempDir, { recursive: true, force: true });

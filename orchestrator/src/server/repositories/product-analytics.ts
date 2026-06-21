@@ -289,7 +289,15 @@ async function estimateInstallTimestampMs(): Promise<number> {
 }
 
 function mapInstallState(row: InstallState): InstallState {
-  return row;
+  return {
+    ...row,
+    installedAt: row.installedAt ? new Date(row.installedAt).toISOString() : row.installedAt,
+    rawEventReplayCompletedAt: row.rawEventReplayCompletedAt
+      ? new Date(row.rawEventReplayCompletedAt).toISOString()
+      : row.rawEventReplayCompletedAt,
+    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : row.createdAt,
+    updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : row.updatedAt,
+  };
 }
 
 export async function getAnalyticsInstallState(): Promise<InstallState | null> {

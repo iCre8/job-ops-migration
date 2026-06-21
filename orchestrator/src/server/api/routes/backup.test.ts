@@ -62,7 +62,14 @@ describe.sequential("Backup API routes", () => {
     it("should return error if database does not exist", async () => {
       // Delete the database
       closeDb();
-      await fs.promises.unlink(`${tempDir}/jobs.db`);
+      const pgdataPath = `${tempDir}/pgdata`;
+      if (fs.existsSync(pgdataPath)) {
+        await fs.promises.rm(pgdataPath, { recursive: true, force: true });
+      }
+      const jobsDbPath = `${tempDir}/jobs.db`;
+      if (fs.existsSync(jobsDbPath)) {
+        await fs.promises.unlink(jobsDbPath);
+      }
 
       const res = await fetch(`${baseUrl}/api/backups`, { method: "POST" });
       const body = await res.json();

@@ -12,7 +12,7 @@ export { schema };
 
 export let client: any;
 export let db: any;
-export let closeDb: () => void;
+export let closeDb: () => Promise<void>;
 
 if (isTest) {
   const { PGlite } = await import("@electric-sql/pglite");
@@ -22,10 +22,14 @@ if (isTest) {
   const localClient = new PGlite(dataDir);
   client = localClient;
   db = drizzlePglite(localClient, { schema }) as any;
-  closeDb = () => {
-    localClient.close().catch((err: any) => {
+  closeDb = async () => {
+    if (localClient._closed) return;
+    localClient._closed = true;
+    try {
+      await localClient.close();
+    } catch (err: any) {
       console.error("Error closing pglite database:", err);
-    });
+    }
   };
 } else {
   let databaseUrl = process.env.DATABASE_URL;
@@ -40,18 +44,21 @@ if (isTest) {
   db = drizzle(localClient, { schema });
   
   let isClosed = false;
-  closeDb = () => {
+  closeDb = async () => {
     if (isClosed) return;
-    localClient.end().catch((err: any) => {
-      console.error("Error closing pg connection pool:", err);
-    });
     isClosed = true;
+    try {
+      await localClient.end();
+    } catch (err: any) {
+      console.error("Error closing pg connection pool:", err);
+    }
   };
 }
 
 export async function reinitializeTestDb(dataDir: string) {
   if (!isTest) return;
-  if (client) {
+  if (client && !client._closed) {
+    client._closed = true;
     try {
       await client.close();
     } catch (e) {}
@@ -62,9 +69,13 @@ export async function reinitializeTestDb(dataDir: string) {
   const localClient = new PGlite(path.join(dataDir, "pgdata"));
   client = localClient;
   db = drizzlePglite(localClient, { schema }) as any;
-  closeDb = () => {
-    localClient.close().catch((err: any) => {
+  closeDb = async () => {
+    if (localClient._closed) return;
+    localClient._closed = true;
+    try {
+      await localClient.close();
+    } catch (err: any) {
       console.error("Error closing pglite database:", err);
-    });
+    }
   };
 }

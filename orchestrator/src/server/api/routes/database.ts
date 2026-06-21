@@ -19,7 +19,7 @@ databaseRouter.delete("/", async (_req: Request, res: Response) => {
       );
     }
 
-    const result = clearDatabase();
+    const result = await clearDatabase();
 
     ok(res, {
       message: "Database cleared",
