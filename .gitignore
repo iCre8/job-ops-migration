@@ -1,0 +1,35 @@
+# Environment files
+.env
+*.env.local
+
+# Dependencies
+node_modules/
+**/node_modules/
+**/.package-lock.json
+package-lock.json
+apps/*/.svelte-kit/
+apps/*/test-results/
+apps/*/coverage/
+apps/*/build/
+.svelte-kit/
+test-results/
+coverage/
+dist/
+build/
+.nx/
+yarn.lock
+**/.docusaurus/
+docs-site/.docusaurus/
+docs-site/build/
+
+# Data directory (bind mount in Docker)
+data/
+*.sh
+
+# Extractor storage outputs and cached auth
+extractors/ukvisajobs/storage/
+
+# OS files
+.DS_Store
+Thumbs.db
+.vercel

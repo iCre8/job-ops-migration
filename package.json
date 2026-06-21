@@ -1,0 +1,35 @@
+{
+  "name": "job-ops-migration",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.1.1",
+  "scripts": {
+    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "dev": "pnpm nx dev web",
+    "build": "pnpm nx build web",
+    "preview": "pnpm nx preview web",
+    "start": "pnpm nx start web",
+    "lint": "pnpm nx lint web",
+    "lint:fix": "pnpm --filter @job-ops/web lint:fix",
+    "check": "pnpm nx typecheck web",
+    "check:types": "pnpm --filter @job-ops/web check:types",
+    "test": "pnpm nx test web",
+    "test:watch": "pnpm --filter @job-ops/web test",
+    "test:coverage": "pnpm nx coverage web",
+    "e2e": "pnpm nx e2e web",
+    "affected:build": "pnpm nx affected --target=build",
+    "affected:test": "pnpm nx affected --target=test",
+    "affected:check": "pnpm nx affected --target=typecheck",
+    "affected:lint": "pnpm nx affected --target=lint",
+    "db:push": "pnpm nx db-push web",
+    "db:generate": "pnpm nx db-generate web",
+    "db:studio": "pnpm nx db-studio web",
+    "dep-graph": "pnpm nx graph",
+    "dep-graph:export": "pnpm nx graph --file=dep-graph.html",
+    "postinstall": "pnpm db:generate"
+  },
+  "devDependencies": {
+    "nx": "19.8.4"
+  }
+}
