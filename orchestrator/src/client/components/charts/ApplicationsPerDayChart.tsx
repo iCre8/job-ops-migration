@@ -33,9 +33,9 @@ const chartConfig = {
 };
 
 const toDateKey = (value: Date) => {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
+  const year = value.getUTCFullYear();
+  const month = `${value.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${value.getUTCDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -44,10 +44,10 @@ const buildApplicationsPerDay = (
   daysToShow: number,
 ) => {
   const end = new Date();
-  end.setHours(23, 59, 59, 999);
+  end.setUTCHours(23, 59, 59, 999);
   const start = new Date(end);
-  start.setDate(start.getDate() - (daysToShow - 1));
-  start.setHours(0, 0, 0, 0);
+  start.setUTCDate(start.getUTCDate() - (daysToShow - 1));
+  start.setUTCHours(0, 0, 0, 0);
 
   const counts = new Map<string, number>();
   for (const value of appliedAt) {
@@ -63,7 +63,7 @@ const buildApplicationsPerDay = (
   for (
     let day = new Date(start);
     day <= end;
-    day = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1)
+    day = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1))
   ) {
     const key = toDateKey(day);
     data.push({ date: key, applications: counts.get(key) ?? 0 });
@@ -172,7 +172,8 @@ export function ApplicationsPerDayChart({
                 tickMargin={8}
                 minTickGap={32}
                 tickFormatter={(value) => {
-                  const date = new Date(value);
+                  const [y, m, d] = value.split("-").map(Number);
+                  const date = new Date(y, m - 1, d);
                   return date.toLocaleDateString("en-GB", {
                     month: "short",
                     day: "numeric",
@@ -185,13 +186,15 @@ export function ApplicationsPerDayChart({
                   <ChartTooltipContent
                     className="w-[160px]"
                     nameKey="applications"
-                    labelFormatter={(value) =>
-                      new Date(value as string).toLocaleDateString("en-GB", {
+                    labelFormatter={(value) => {
+                      const [y, m, d] = (value as string).split("-").map(Number);
+                      const date = new Date(y, m - 1, d);
+                      return date.toLocaleDateString("en-GB", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
-                      })
-                    }
+                      });
+                    }}
                   />
                 }
               />

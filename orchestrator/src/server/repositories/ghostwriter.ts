@@ -538,9 +538,10 @@ export async function deleteAllMessagesForThread(
 ): Promise<number> {
   const result = await db
     .delete(jobChatMessages)
-    .where(and(messagesScopeFilter(), eq(jobChatMessages.threadId, threadId)));
+    .where(and(messagesScopeFilter(), eq(jobChatMessages.threadId, threadId)))
+    .returning({ id: jobChatMessages.id });
 
-  return result.changes;
+  return result.length;
 }
 
 export async function deleteAllRunsForThread(
@@ -548,9 +549,10 @@ export async function deleteAllRunsForThread(
 ): Promise<number> {
   const result = await db
     .delete(jobChatRuns)
-    .where(and(runsScopeFilter(), eq(jobChatRuns.threadId, threadId)));
+    .where(and(runsScopeFilter(), eq(jobChatRuns.threadId, threadId)))
+    .returning({ id: jobChatRuns.id });
 
-  return result.changes;
+  return result.length;
 }
 
 /**

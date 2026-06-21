@@ -1,0 +1,14 @@
+# Configuration Change Log
+
+## [2026-06-21] Build, Dependencies, and Watch Configuration Updates
+
+### Drizzle Configuration
+- **New Configuration File**: Added `drizzle.config.ts` in the `orchestrator` project directory, targeting the PostgreSQL dialect, schema path (`src/server/db/schema.ts`), and output migrations folder.
+
+### Package & Dependencies Updates
+- **New Dependencies**: Added `postgres` (PostgreSQL client driver) to dependencies.
+- **New Dev Dependencies**: Added `@electric-sql/pglite` (WASM PostgreSQL database engine) to devDependencies.
+
+### Dev Server Watcher Workarounds
+- **Vite Polling Overrides**: Updated `orchestrator/vite.config.ts` under the `server` block with `watch: { usePolling: true }` to disable Vite's standard inotify file watchers, bypassing the `ENOSPC` limit.
+- **Backend Watcher Disabling**: Adjusted `dev:server` NPM script in `orchestrator/package.json` to execute `"tsx src/server/index.ts"` directly without the `watch` modifier. This prevents node filesystem watchers from being initialized for server-side code in resource-constrained container/development environments.

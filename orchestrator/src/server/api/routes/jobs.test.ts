@@ -1823,7 +1823,7 @@ describe.sequential("Jobs API routes", () => {
       const trans1 = await fetch(`${baseUrl}/api/jobs/${jobId}/stages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toStage: "applied" }),
+        body: JSON.stringify({ toStage: "applied", occurredAt: 1713456700 }),
       });
       const body1 = await trans1.json();
       expect(body1.ok).toBe(true);
@@ -1846,6 +1846,7 @@ describe.sequential("Jobs API routes", () => {
         body: JSON.stringify({
           toStage: "recruiter_screen",
           metadata: { note: "Called by recruiter" },
+          occurredAt: 1713456701,
         }),
       });
 
@@ -1950,8 +1951,7 @@ describe.sequential("Jobs API routes", () => {
           type: "todo",
           title: "Complete test task",
           isCompleted: false,
-        })
-        .run();
+        });
 
       const res2 = await fetch(`${baseUrl}/api/jobs/${jobId}/tasks`);
       const body2 = await res2.json();
@@ -1962,8 +1962,7 @@ describe.sequential("Jobs API routes", () => {
       await (db as any)
         .update(tasks)
         .set({ isCompleted: true })
-        .where(eq(tasks.id, "task-1"))
-        .run();
+        .where(eq(tasks.id, "task-1"));
 
       const res3 = await fetch(`${baseUrl}/api/jobs/${jobId}/tasks`);
       const body3 = await res3.json();

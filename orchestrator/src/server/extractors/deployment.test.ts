@@ -83,24 +83,14 @@ describe("extractor deployment config", () => {
     expect(fetchScript).toContain("await downloadMMDB();");
   });
 
-  it("syncs the Naukri extractor in compose development mode", async () => {
+  it("syncs the extractors in compose development mode", async () => {
     const composeFile = await readFile(
       resolve(process.cwd(), "../docker-compose.yml"),
       { encoding: "utf8" },
     );
 
-    expect(composeFile).toContain("path: ./extractors/naukri");
-    expect(composeFile).toContain("target: /app/extractors/naukri");
-  });
-
-  it("syncs the Jobindex extractor in compose development mode", async () => {
-    const composeFile = await readFile(
-      resolve(process.cwd(), "../docker-compose.yml"),
-      { encoding: "utf8" },
-    );
-
-    expect(composeFile).toContain("path: ./extractors/jobindex/src");
-    expect(composeFile).toContain("target: /app/extractors/jobindex/src");
+    expect(composeFile).toContain("path: ./extractors");
+    expect(composeFile).toContain("target: /app/extractors");
   });
 
   it("syncs the Workday career board package in compose development mode", async () => {

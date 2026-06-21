@@ -86,7 +86,9 @@ describe.sequential("Auth routes", () => {
 
     it("returns 400 when auth is disabled", async () => {
       await stopServer({ server, closeDb, tempDir });
-      ({ server, baseUrl, closeDb, tempDir } = await startServer());
+      ({ server, baseUrl, closeDb, tempDir } = await startServer({
+        env: { JOBOPS_TEST_AUTH_BYPASS: "0" },
+      }));
 
       const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
@@ -441,7 +443,9 @@ describe.sequential("Auth routes", () => {
 
   describe("POST /api/auth/setup", () => {
     beforeEach(async () => {
-      ({ server, baseUrl, closeDb, tempDir } = await startServer());
+      ({ server, baseUrl, closeDb, tempDir } = await startServer({
+        env: { JOBOPS_TEST_AUTH_BYPASS: "0" },
+      }));
     });
 
     it("creates the first admin in local mode", async () => {

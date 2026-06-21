@@ -1,0 +1,18 @@
+# Application Change Log
+
+## [2026-06-21] SQLite to PostgreSQL Application Layer Enhancements
+
+### Repository & Database Layer Compatibility
+- **Return Value Transformations**: Swapped reliance on SQLite's `RunResult.changes` metadata for delete, insert, and update operations. Rewrote these methods to use Drizzle's `.returning({ id: ... })` query modifiers to fetch and count rows, returning `result.length` instead. Affected repositories:
+  - `src/server/repositories/ghostwriter.ts`
+  - `src/server/repositories/watchlist.ts`
+  - `src/server/repositories/jobs.ts`
+  - `src/server/repositories/job-documents.ts`
+  - `src/server/repositories/tracer-links.ts`
+  - `src/server/repositories/users.ts`
+- **Constraint Error Handlers**: Modified `isJobUrlUniqueViolation` inside the jobs repository to recognize PostgreSQL unique constraint code `23505` rather than SQLite-specific constraint failed strings.
+- **Awaiting Async Operations**: Fixed a missing `await` on the async `transitionStage()` call inside the post-application review service (`service.ts`).
+
+### Timezone & Localization Enhancements
+- **Applications Chart Dates**: Adjusted `ApplicationsPerDayChart.tsx` tick and label formatters to parse incoming date strings (in `YYYY-MM-DD` format) by splitting their year/month/day components manually and creating a local date object. This avoids default `new Date("YYYY-MM-DD")` parsing shifts caused by runner timezone offsets.
+- **Job Posting Age Utility**: Replaced local-day calculations (`startOfLocalDay`) in `job-posting-age.ts` with a UTC-based `startOfUtcDay` using `Date.UTC` to keep posting relative age tags timezone-safe and consistent between local testing and remote hosts.

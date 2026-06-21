@@ -1,0 +1,11 @@
+# Infrastructure Change Log
+
+## [2026-06-21] SQLite to PostgreSQL Database Engine Migration
+
+### Production Database Migration
+- **PostgreSQL Database Engine**: Migrated the main datastore engine in `orchestrator` from SQLite (`better-sqlite3`) to PostgreSQL. The application now connects via a connection pool to any PostgreSQL database endpoint using standard credentials.
+- **Removed SQLite Constraints**: Retired WAL-pragma logic, file existence directories check, and localized write locks associated with the single-user file-based SQLite setup.
+
+### Test Environment Virtualization
+- **PGlite Integration**: Replaced memory-only SQLite configuration in test mode with `@electric-sql/pglite` (a WASM/JS Postgres engine).
+- **Test Database Isolation**: PGlite provides 100% dialect parity with standard PostgreSQL, allowing integration tests to verify PG-specific features (JSONB, UUID generation, native dates) without running a full PostgreSQL service container.

@@ -3384,3 +3384,4 @@ stderr | src/server/services/design-resume/ai-field-suggestion.test.ts > generat
  ✓ src/server/services/llm/policies/mode-selection.test.ts (3 tests) 6ms
  ✓ src/server/services/llm/policies/capability-fallback.test.ts (3 tests) 5ms
  ✓ src/server/services/rxresume/tailoring.test.ts (1 test) 4ms
+ ELIFECYCLE  Command failed.

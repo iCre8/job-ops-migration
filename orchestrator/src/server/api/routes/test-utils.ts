@@ -305,7 +305,11 @@ export async function startServer(options?: {
     .where(eq(schema.users.id, "test-user"))
     .limit(1);
 
-  if (existingTestUser.length === 0) {
+  const shouldSeedBypassUser =
+    process.env.JOBOPS_TEST_AUTH_BYPASS !== "0" &&
+    envOverrides.JOBOPS_TEST_AUTH_BYPASS !== "0";
+
+  if (shouldSeedBypassUser && existingTestUser.length === 0) {
     const { hashPassword } = await import("@server/auth/password");
     const { passwordHash, passwordSalt } = await hashPassword("test-password");
     const now = new Date().toISOString();
@@ -416,7 +420,7 @@ export async function startServer(options?: {
 
 export async function stopServer(args: {
   server: Server;
-  closeDb: () => Promise<void>;
+  closeDb: () => Promise<void> | void;
   tempDir?: string;
 }) {
   // Defensive: if startServer throws, callers may still run cleanup.

@@ -2,16 +2,16 @@
  * Database connection and initialization.
  */
 
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const isTest = process.env.NODE_ENV === "test" || typeof globalThis.vitest !== "undefined" || process.env.VITEST;
+const isTest = process.env.NODE_ENV === "test" || typeof (globalThis as any).vitest !== "undefined" || process.env.VITEST;
 
 export { schema };
 
 export let client: any;
-export let db: any;
+export let db: PostgresJsDatabase<typeof schema>;
 export let closeDb: () => Promise<void>;
 
 if (isTest) {
@@ -23,8 +23,8 @@ if (isTest) {
   client = localClient;
   db = drizzlePglite(localClient, { schema }) as any;
   closeDb = async () => {
-    if (localClient._closed) return;
-    localClient._closed = true;
+    if ((localClient as any)._closed) return;
+    (localClient as any)._closed = true;
     try {
       await localClient.close();
     } catch (err: any) {
@@ -57,8 +57,8 @@ if (isTest) {
 
 export async function reinitializeTestDb(dataDir: string) {
   if (!isTest) return;
-  if (client && !client._closed) {
-    client._closed = true;
+  if (client && !(client as any)._closed) {
+    (client as any)._closed = true;
     try {
       await client.close();
     } catch (e) {}
@@ -70,8 +70,8 @@ export async function reinitializeTestDb(dataDir: string) {
   client = localClient;
   db = drizzlePglite(localClient, { schema }) as any;
   closeDb = async () => {
-    if (localClient._closed) return;
-    localClient._closed = true;
+    if ((localClient as any)._closed) return;
+    (localClient as any)._closed = true;
     try {
       await localClient.close();
     } catch (err: any) {

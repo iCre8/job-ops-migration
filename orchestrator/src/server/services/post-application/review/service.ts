@@ -152,7 +152,7 @@ export async function approvePostApplicationInboxItem(args: {
     const transition = resolveStageTransitionForTarget(resolvedTarget);
 
     if (transition.toStage !== "no_change") {
-      const event = transitionStage(
+      const event = await transitionStage(
         resolvedJobId,
         transition.toStage,
         Math.floor(

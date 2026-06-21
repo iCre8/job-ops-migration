@@ -8,18 +8,18 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const isTest = process.env.NODE_ENV === "test" || typeof globalThis.vitest !== "undefined" || process.env.VITEST;
+const isTest = process.env.NODE_ENV === "test" || typeof (globalThis as any).vitest !== "undefined" || process.env.VITEST;
 
 async function main() {
   console.log("Running migrations...");
   if (isTest) {
     const { migrate: migratePglite } = await import("drizzle-orm/pglite/migrator");
-    await migratePglite(db, {
+    await migratePglite(db as any, {
       migrationsFolder: path.join(__dirname, "migrations"),
     });
   } else {
     const { migrate: migratePostgres } = await import("drizzle-orm/postgres-js/migrator");
-    await migratePostgres(db, {
+    await migratePostgres(db as any, {
       migrationsFolder: path.join(__dirname, "migrations"),
     });
   }

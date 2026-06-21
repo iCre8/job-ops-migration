@@ -18,15 +18,15 @@ function parsePostingDate(value: string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function startOfLocalDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+function startOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 function getCalendarAgeDays(date: Date, now: Date): number {
   return Math.max(
     0,
     Math.floor(
-      (startOfLocalDay(now).getTime() - startOfLocalDay(date).getTime()) /
+      (startOfUtcDay(now).getTime() - startOfUtcDay(date).getTime()) /
         86_400_000,
     ),
   );
