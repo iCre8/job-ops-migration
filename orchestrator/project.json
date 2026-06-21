@@ -1,0 +1,96 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "orchestrator",
+  "projectType": "application",
+  "sourceRoot": "orchestrator/src",
+  "tags": [
+    "type:app",
+    "scope:orchestrator"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
+      "options": {
+        "command": "pnpm build:client",
+        "cwd": "{projectRoot}"
+      },
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm dev",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "dev-server": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm dev:server",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "dev-client": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm dev:client",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm start",
+        "cwd": "{projectRoot}"
+      },
+      "dependsOn": [
+        "build"
+      ]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm ci",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm check:types",
+        "cwd": "{projectRoot}"
+      },
+      "dependsOn": [
+        "^typecheck"
+      ]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/coverage"
+      ],
+      "options": {
+        "command": "pnpm test:run",
+        "cwd": "{projectRoot}"
+      },
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "coverage": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/coverage"
+      ],
+      "options": {
+        "command": "pnpm vitest run --coverage",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}

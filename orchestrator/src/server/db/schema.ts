@@ -1,5 +1,5 @@
 /**
- * Database schema using Drizzle ORM with SQLite.
+ * Database schema using Drizzle ORM with PostgreSQL.
  */
 
 import {
@@ -20,15 +20,19 @@ import {
 } from "@shared/types";
 import { sql } from "drizzle-orm";
 import {
+  boolean,
+  doublePrecision,
   index,
   integer,
-  real,
-  sqliteTable,
+  pgTable,
   text,
+  timestamp,
   uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+  bigint,
+  jsonb,
+} from "drizzle-orm/pg-core";
 
-export const users = sqliteTable(
+export const users = pgTable(
   "users",
   {
     id: text("id").primaryKey(),
@@ -36,29 +40,29 @@ export const users = sqliteTable(
     displayName: text("display_name"),
     passwordHash: text("password_hash").notNull(),
     passwordSalt: text("password_salt").notNull(),
-    isSystemAdmin: integer("is_system_admin", { mode: "boolean" })
+    isSystemAdmin: boolean("is_system_admin")
       .notNull()
       .default(false),
-    isDisabled: integer("is_disabled", { mode: "boolean" })
+    isDisabled: boolean("is_disabled")
       .notNull()
       .default(false),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     usernameUnique: uniqueIndex("idx_users_username_unique").on(table.username),
   }),
 );
 
-export const tenants = sqliteTable("tenants", {
+export const tenants = pgTable("tenants", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
-export const tenantMemberships = sqliteTable(
+export const tenantMemberships = pgTable(
   "tenant_memberships",
   {
     id: text("id").primaryKey(),
@@ -71,8 +75,8 @@ export const tenantMemberships = sqliteTable(
     role: text("role", { enum: ["owner", "member"] })
       .notNull()
       .default("owner"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     userTenantUnique: uniqueIndex("idx_tenant_memberships_user_tenant").on(
@@ -83,7 +87,7 @@ export const tenantMemberships = sqliteTable(
   }),
 );
 
-export const jobs = sqliteTable(
+export const jobs = pgTable(
   "jobs",
   {
     id: text("id").primaryKey(),
@@ -118,10 +122,10 @@ export const jobs = sqliteTable(
     jobType: text("job_type"),
     salarySource: text("salary_source"),
     salaryInterval: text("salary_interval"),
-    salaryMinAmount: real("salary_min_amount"),
-    salaryMaxAmount: real("salary_max_amount"),
+    salaryMinAmount: doublePrecision("salary_min_amount"),
+    salaryMaxAmount: doublePrecision("salary_max_amount"),
     salaryCurrency: text("salary_currency"),
-    isRemote: integer("is_remote", { mode: "boolean" }),
+    isRemote: boolean("is_remote"),
     jobLevel: text("job_level"),
     jobFunction: text("job_function"),
     listingType: text("listing_type"),
@@ -135,7 +139,7 @@ export const jobs = sqliteTable(
     companyDescription: text("company_description"),
     skills: text("skills"),
     experienceRange: text("experience_range"),
-    companyRating: real("company_rating"),
+    companyRating: doublePrecision("company_rating"),
     companyReviewsCount: integer("company_reviews_count"),
     vacancyCount: integer("vacancy_count"),
     workFromHomeType: text("work_from_home_type"),
@@ -155,8 +159,8 @@ export const jobs = sqliteTable(
       .notNull()
       .default("discovered"),
     outcome: text("outcome", { enum: APPLICATION_OUTCOMES }),
-    closedAt: integer("closed_at", { mode: "number" }),
-    suitabilityScore: real("suitability_score"),
+    closedAt: bigint("closed_at", { mode: "number" }),
+    suitabilityScore: doublePrecision("suitability_score"),
     suitabilityReason: text("suitability_reason"),
     jobBrief: text("job_brief"),
     tailoredSummary: text("tailored_summary"),
@@ -165,26 +169,26 @@ export const jobs = sqliteTable(
     selectedProjectIds: text("selected_project_ids"),
     pdfPath: text("pdf_path"),
     pdfSource: text("pdf_source", { enum: ["generated", "uploaded"] }),
-    pdfRegenerating: integer("pdf_regenerating", { mode: "boolean" })
+    pdfRegenerating: boolean("pdf_regenerating")
       .notNull()
       .default(false),
     pdfFingerprint: text("pdf_fingerprint"),
-    pdfGeneratedAt: text("pdf_generated_at"),
-    tracerLinksEnabled: integer("tracer_links_enabled", { mode: "boolean" })
+    pdfGeneratedAt: timestamp("pdf_generated_at", { withTimezone: true, mode: "string" }),
+    tracerLinksEnabled: boolean("tracer_links_enabled")
       .notNull()
       .default(false),
-    sponsorMatchScore: real("sponsor_match_score"),
+    sponsorMatchScore: doublePrecision("sponsor_match_score"),
     sponsorMatchNames: text("sponsor_match_names"),
 
     // Timestamps
-    discoveredAt: text("discovered_at")
+    discoveredAt: timestamp("discovered_at", { withTimezone: true, mode: "string" })
       .notNull()
-      .default(sql`(datetime('now'))`),
-    processedAt: text("processed_at"),
-    readyAt: text("ready_at"),
-    appliedAt: text("applied_at"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+      .defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true, mode: "string" }),
+    readyAt: timestamp("ready_at", { withTimezone: true, mode: "string" }),
+    appliedAt: timestamp("applied_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     tenantUserJobUrlUnique: uniqueIndex(
@@ -202,7 +206,7 @@ export const jobs = sqliteTable(
   }),
 );
 
-export const stageEvents = sqliteTable("stage_events", {
+export const stageEvents = pgTable("stage_events", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id")
     .notNull()
@@ -218,12 +222,12 @@ export const stageEvents = sqliteTable("stage_events", {
   groupId: text("group_id"),
   fromStage: text("from_stage", { enum: APPLICATION_STAGES }),
   toStage: text("to_stage", { enum: APPLICATION_STAGES }).notNull(),
-  occurredAt: integer("occurred_at", { mode: "number" }).notNull(),
-  metadata: text("metadata", { mode: "json" }),
+  occurredAt: bigint("occurred_at", { mode: "number" }).notNull(),
+  metadata: jsonb("metadata"),
   outcome: text("outcome", { enum: APPLICATION_OUTCOMES }),
 });
 
-export const tasks = sqliteTable("tasks", {
+export const tasks = pgTable("tasks", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id")
     .notNull()
@@ -237,14 +241,14 @@ export const tasks = sqliteTable("tasks", {
     .references(() => jobs.id, { onDelete: "cascade" }),
   type: text("type", { enum: APPLICATION_TASK_TYPES }).notNull(),
   title: text("title").notNull(),
-  dueDate: integer("due_date", { mode: "number" }),
-  isCompleted: integer("is_completed", { mode: "boolean" })
+  dueDate: bigint("due_date", { mode: "number" }),
+  isCompleted: boolean("is_completed")
     .notNull()
     .default(false),
   notes: text("notes"),
 });
 
-export const jobNotes = sqliteTable(
+export const jobNotes = pgTable(
   "job_notes",
   {
     id: text("id").primaryKey(),
@@ -260,8 +264,8 @@ export const jobNotes = sqliteTable(
       .references(() => jobs.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     content: text("content").notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     jobUpdatedIndex: index("idx_job_notes_job_updated").on(
@@ -271,7 +275,7 @@ export const jobNotes = sqliteTable(
   }),
 );
 
-export const interviews = sqliteTable("interviews", {
+export const interviews = pgTable("interviews", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id")
     .notNull()
@@ -283,13 +287,13 @@ export const interviews = sqliteTable("interviews", {
   applicationId: text("application_id")
     .notNull()
     .references(() => jobs.id, { onDelete: "cascade" }),
-  scheduledAt: integer("scheduled_at", { mode: "number" }).notNull(),
+  scheduledAt: bigint("scheduled_at", { mode: "number" }).notNull(),
   durationMins: integer("duration_mins"),
   type: text("type", { enum: INTERVIEW_TYPES }).notNull(),
   outcome: text("outcome", { enum: INTERVIEW_OUTCOMES }),
 });
 
-export const pipelineRuns = sqliteTable("pipeline_runs", {
+export const pipelineRuns = pgTable("pipeline_runs", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id")
     .notNull()
@@ -298,8 +302,8 @@ export const pipelineRuns = sqliteTable("pipeline_runs", {
   userId: text("user_id").references(() => users.id, {
     onDelete: "cascade",
   }),
-  startedAt: text("started_at").notNull().default(sql`(datetime('now'))`),
-  completedAt: text("completed_at"),
+  startedAt: timestamp("started_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }),
   status: text("status", {
     enum: ["running", "completed", "failed", "cancelled"],
   })
@@ -309,12 +313,12 @@ export const pipelineRuns = sqliteTable("pipeline_runs", {
   jobsProcessed: integer("jobs_processed").notNull().default(0),
   errorMessage: text("error_message"),
   configSnapshot: text("config_snapshot"),
-  requestedConfig: text("requested_config", { mode: "json" }),
-  effectiveConfig: text("effective_config", { mode: "json" }),
-  resultSummary: text("result_summary", { mode: "json" }),
+  requestedConfig: jsonb("requested_config"),
+  effectiveConfig: jsonb("effective_config"),
+  resultSummary: jsonb("result_summary"),
 });
 
-export const pipelineSearchPresets = sqliteTable(
+export const pipelineSearchPresets = pgTable(
   "pipeline_search_presets",
   {
     id: text("id").primaryKey(),
@@ -324,10 +328,10 @@ export const pipelineSearchPresets = sqliteTable(
       .references(() => tenants.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull(),
     name: text("name").notNull(),
-    config: text("config", { mode: "json" }).notNull(),
-    lastUsedAt: text("last_used_at"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    config: jsonb("config").notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     tenantUserNameUnique: uniqueIndex(
@@ -339,7 +343,7 @@ export const pipelineSearchPresets = sqliteTable(
   }),
 );
 
-export const jobChatThreads = sqliteTable(
+export const jobChatThreads = pgTable(
   "job_chat_threads",
   {
     id: text("id").primaryKey(),
@@ -354,9 +358,9 @@ export const jobChatThreads = sqliteTable(
       .notNull()
       .references(() => jobs.id, { onDelete: "cascade" }),
     title: text("title"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
-    lastMessageAt: text("last_message_at"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true, mode: "string" }),
     activeRootMessageId: text("active_root_message_id"),
     selectedNoteIds: text("selected_note_ids").notNull().default("[]"),
     selectedEmailIds: text("selected_email_ids").notNull().default("[]"),
@@ -370,7 +374,7 @@ export const jobChatThreads = sqliteTable(
   }),
 );
 
-export const jobChatMessages = sqliteTable(
+export const jobChatMessages = pgTable(
   "job_chat_messages",
   {
     id: text("id").primaryKey(),
@@ -399,8 +403,8 @@ export const jobChatMessages = sqliteTable(
     parentMessageId: text("parent_message_id"),
     activeChildId: text("active_child_id"),
     attachments: text("attachments").notNull().default("[]"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     threadCreatedIndex: index("idx_job_chat_messages_thread_created").on(
@@ -410,7 +414,7 @@ export const jobChatMessages = sqliteTable(
   }),
 );
 
-export const jobChatRuns = sqliteTable(
+export const jobChatRuns = pgTable(
   "job_chat_runs",
   {
     id: text("id").primaryKey(),
@@ -434,11 +438,11 @@ export const jobChatRuns = sqliteTable(
     provider: text("provider"),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
-    startedAt: integer("started_at", { mode: "number" }).notNull(),
-    completedAt: integer("completed_at", { mode: "number" }),
+    startedAt: bigint("started_at", { mode: "number" }).notNull(),
+    completedAt: bigint("completed_at", { mode: "number" }),
     requestId: text("request_id"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     threadStatusIndex: index("idx_job_chat_runs_thread_status").on(
@@ -448,7 +452,7 @@ export const jobChatRuns = sqliteTable(
   }),
 );
 
-export const settings = sqliteTable(
+export const settings = pgTable(
   "settings",
   {
     tenantId: text("tenant_id")
@@ -460,8 +464,8 @@ export const settings = sqliteTable(
     }),
     key: text("key").notNull(),
     value: text("value").notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     tenantUserKeyUnique: uniqueIndex("idx_settings_tenant_user_key_unique").on(
@@ -472,7 +476,7 @@ export const settings = sqliteTable(
   }),
 );
 
-export const watchlistJobStates = sqliteTable(
+export const watchlistJobStates = pgTable(
   "watchlist_job_states",
   {
     id: text("id").primaryKey(),
@@ -486,8 +490,8 @@ export const watchlistJobStates = sqliteTable(
     state: text("state", { enum: ["ignored", "moved_to_workspace"] })
       .notNull()
       .default("ignored"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     tenantUserSourceJobUnique: uniqueIndex(
@@ -499,7 +503,7 @@ export const watchlistJobStates = sqliteTable(
   }),
 );
 
-export const watchlistChecks = sqliteTable(
+export const watchlistChecks = pgTable(
   "watchlist_checks",
   {
     id: text("id").primaryKey(),
@@ -508,9 +512,9 @@ export const watchlistChecks = sqliteTable(
       .default("tenant_default")
       .references(() => tenants.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull(),
-    lastCheckedAt: text("last_checked_at").notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    lastCheckedAt: timestamp("last_checked_at", { withTimezone: true, mode: "string" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     tenantUserUnique: uniqueIndex("idx_watchlist_checks_tenant_user_unique").on(
@@ -520,7 +524,7 @@ export const watchlistChecks = sqliteTable(
   }),
 );
 
-export const watchlistSeenJobs = sqliteTable(
+export const watchlistSeenJobs = pgTable(
   "watchlist_seen_jobs",
   {
     id: text("id").primaryKey(),
@@ -531,10 +535,10 @@ export const watchlistSeenJobs = sqliteTable(
     userId: text("user_id").notNull(),
     source: text("source").notNull(),
     sourceJobId: text("source_job_id").notNull(),
-    firstSeenAt: text("first_seen_at").notNull(),
-    lastSeenAt: text("last_seen_at").notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true, mode: "string" }).notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true, mode: "string" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     tenantUserSourceJobUnique: uniqueIndex(
@@ -546,7 +550,7 @@ export const watchlistSeenJobs = sqliteTable(
   }),
 );
 
-export const watchlistSelectedSources = sqliteTable(
+export const watchlistSelectedSources = pgTable(
   "watchlist_selected_sources",
   {
     id: text("id").primaryKey(),
@@ -560,12 +564,12 @@ export const watchlistSelectedSources = sqliteTable(
     careersUrl: text("careers_url").notNull(),
     cxsJobsUrl: text("cxs_jobs_url"),
     sourceType: text("source_type").notNull(),
-    isCustom: integer("is_custom", { mode: "boolean" })
+    isCustom: boolean("is_custom")
       .notNull()
       .default(false),
     sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     tenantUserSortOrderUnique: uniqueIndex(
@@ -581,27 +585,27 @@ export const watchlistSelectedSources = sqliteTable(
   }),
 );
 
-export const analyticsInstallState = sqliteTable("analytics_install_state", {
+export const analyticsInstallState = pgTable("analytics_install_state", {
   id: text("id").primaryKey(),
   distinctId: text("distinct_id").notNull(),
-  installedAt: text("installed_at").notNull(),
+  installedAt: timestamp("installed_at", { withTimezone: true, mode: "string" }).notNull(),
   rawEventReplayVersion: integer("raw_event_replay_version")
     .notNull()
     .default(0),
-  rawEventReplayCompletedAt: text("raw_event_replay_completed_at"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  rawEventReplayCompletedAt: timestamp("raw_event_replay_completed_at", { withTimezone: true, mode: "string" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
-export const analyticsMilestones = sqliteTable(
+export const analyticsMilestones = pgTable(
   "analytics_milestones",
   {
     milestone: text("milestone").primaryKey(),
-    firstSeenAt: integer("first_seen_at", { mode: "number" }).notNull(),
+    firstSeenAt: bigint("first_seen_at", { mode: "number" }).notNull(),
     firstSessionId: text("first_session_id"),
-    reportedAt: text("reported_at"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    reportedAt: timestamp("reported_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     firstSeenAtIndex: index("idx_analytics_milestones_first_seen_at").on(
@@ -610,17 +614,17 @@ export const analyticsMilestones = sqliteTable(
   }),
 );
 
-export const analyticsServerEventReplays = sqliteTable(
+export const analyticsServerEventReplays = pgTable(
   "analytics_server_event_replays",
   {
     eventKey: text("event_key").primaryKey(),
     eventName: text("event_name").notNull(),
-    occurredAt: integer("occurred_at", { mode: "number" }).notNull(),
-    payload: text("payload", { mode: "json" }).notNull(),
-    claimedAt: integer("claimed_at", { mode: "number" }),
-    reportedAt: integer("reported_at", { mode: "number" }),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    occurredAt: bigint("occurred_at", { mode: "number" }).notNull(),
+    payload: jsonb("payload").notNull(),
+    claimedAt: bigint("claimed_at", { mode: "number" }),
+    reportedAt: bigint("reported_at", { mode: "number" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     eventNameIndex: index("idx_analytics_server_event_replays_event_name").on(
@@ -632,7 +636,7 @@ export const analyticsServerEventReplays = sqliteTable(
   }),
 );
 
-export const authSessions = sqliteTable(
+export const authSessions = pgTable(
   "auth_sessions",
   {
     id: text("id").primaryKey(),
@@ -641,10 +645,10 @@ export const authSessions = sqliteTable(
     }),
     subject: text("subject").notNull(),
     userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
-    expiresAt: integer("expires_at", { mode: "number" }).notNull(),
-    revokedAt: integer("revoked_at", { mode: "number" }),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+    revokedAt: bigint("revoked_at", { mode: "number" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     expiresAtIndex: index("idx_auth_sessions_expires_at").on(table.expiresAt),
@@ -652,7 +656,7 @@ export const authSessions = sqliteTable(
   }),
 );
 
-export const designResumeDocuments = sqliteTable("design_resume_documents", {
+export const designResumeDocuments = pgTable("design_resume_documents", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id")
     .notNull()
@@ -660,16 +664,16 @@ export const designResumeDocuments = sqliteTable("design_resume_documents", {
     .references(() => tenants.id, { onDelete: "cascade" }),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  resumeJson: text("resume_json", { mode: "json" }).notNull(),
+  resumeJson: jsonb("resume_json").notNull(),
   revision: integer("revision").notNull().default(1),
   sourceResumeId: text("source_resume_id"),
   sourceMode: text("source_mode"),
-  importedAt: text("imported_at"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  importedAt: timestamp("imported_at", { withTimezone: true, mode: "string" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
-export const designResumeAssets = sqliteTable(
+export const designResumeAssets = pgTable(
   "design_resume_assets",
   {
     id: text("id").primaryKey(),
@@ -690,8 +694,8 @@ export const designResumeAssets = sqliteTable(
     mimeType: text("mime_type").notNull(),
     byteSize: integer("byte_size").notNull(),
     storagePath: text("storage_path").notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     documentIndex: index("idx_design_resume_assets_document_id").on(
@@ -700,7 +704,7 @@ export const designResumeAssets = sqliteTable(
   }),
 );
 
-export const jobDocuments = sqliteTable(
+export const jobDocuments = pgTable(
   "job_documents",
   {
     id: text("id").primaryKey(),
@@ -718,8 +722,8 @@ export const jobDocuments = sqliteTable(
     mediaType: text("media_type"),
     byteSize: integer("byte_size").notNull(),
     storagePath: text("storage_path").notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     jobIndex: index("idx_job_documents_job_id").on(table.jobId),
@@ -730,7 +734,7 @@ export const jobDocuments = sqliteTable(
   }),
 );
 
-export const postApplicationIntegrations = sqliteTable(
+export const postApplicationIntegrations = pgTable(
   "post_application_integrations",
   {
     id: text("id").primaryKey(),
@@ -747,12 +751,12 @@ export const postApplicationIntegrations = sqliteTable(
     status: text("status", { enum: POST_APPLICATION_INTEGRATION_STATUSES })
       .notNull()
       .default("disconnected"),
-    credentials: text("credentials", { mode: "json" }),
-    lastConnectedAt: integer("last_connected_at", { mode: "number" }),
-    lastSyncedAt: integer("last_synced_at", { mode: "number" }),
+    credentials: jsonb("credentials"),
+    lastConnectedAt: bigint("last_connected_at", { mode: "number" }),
+    lastSyncedAt: bigint("last_synced_at", { mode: "number" }),
     lastError: text("last_error"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     providerAccountUnique: uniqueIndex(
@@ -766,7 +770,7 @@ export const postApplicationIntegrations = sqliteTable(
   }),
 );
 
-export const postApplicationSyncRuns = sqliteTable(
+export const postApplicationSyncRuns = pgTable(
   "post_application_sync_runs",
   {
     id: text("id").primaryKey(),
@@ -786,8 +790,8 @@ export const postApplicationSyncRuns = sqliteTable(
     status: text("status", { enum: POST_APPLICATION_SYNC_RUN_STATUSES })
       .notNull()
       .default("running"),
-    startedAt: integer("started_at", { mode: "number" }).notNull(),
-    completedAt: integer("completed_at", { mode: "number" }),
+    startedAt: bigint("started_at", { mode: "number" }).notNull(),
+    completedAt: bigint("completed_at", { mode: "number" }),
     messagesDiscovered: integer("messages_discovered").notNull().default(0),
     messagesRelevant: integer("messages_relevant").notNull().default(0),
     messagesClassified: integer("messages_classified").notNull().default(0),
@@ -797,8 +801,8 @@ export const postApplicationSyncRuns = sqliteTable(
     messagesErrored: integer("messages_errored").notNull().default(0),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     providerAccountStartedAtIndex: index(
@@ -807,7 +811,7 @@ export const postApplicationSyncRuns = sqliteTable(
   }),
 );
 
-export const postApplicationMessages = sqliteTable(
+export const postApplicationMessages = pgTable(
   "post_application_messages",
   {
     id: text("id").primaryKey(),
@@ -836,12 +840,12 @@ export const postApplicationMessages = sqliteTable(
     fromDomain: text("from_domain"),
     senderName: text("sender_name"),
     subject: text("subject").notNull().default(""),
-    receivedAt: integer("received_at", { mode: "number" }).notNull(),
+    receivedAt: bigint("received_at", { mode: "number" }).notNull(),
     snippet: text("snippet").notNull().default(""),
     classificationLabel: text("classification_label"),
-    classificationConfidence: real("classification_confidence"),
-    classificationPayload: text("classification_payload", { mode: "json" }),
-    relevanceLlmScore: real("relevance_llm_score"),
+    classificationConfidence: doublePrecision("classification_confidence"),
+    classificationPayload: jsonb("classification_payload"),
+    relevanceLlmScore: doublePrecision("relevance_llm_score"),
     relevanceDecision: text("relevance_decision", {
       enum: POST_APPLICATION_RELEVANCE_DECISIONS,
     })
@@ -853,7 +857,7 @@ export const postApplicationMessages = sqliteTable(
     })
       .notNull()
       .default("other"),
-    stageEventPayload: text("stage_event_payload", { mode: "json" }),
+    stageEventPayload: jsonb("stage_event_payload"),
     processingStatus: text("processing_status", {
       enum: POST_APPLICATION_PROCESSING_STATUSES,
     })
@@ -862,12 +866,12 @@ export const postApplicationMessages = sqliteTable(
     matchedJobId: text("matched_job_id").references(() => jobs.id, {
       onDelete: "set null",
     }),
-    decidedAt: integer("decided_at", { mode: "number" }),
+    decidedAt: bigint("decided_at", { mode: "number" }),
     decidedBy: text("decided_by"),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     providerAccountExternalMessageUnique: uniqueIndex(
@@ -885,7 +889,7 @@ export const postApplicationMessages = sqliteTable(
   }),
 );
 
-export const tracerLinks = sqliteTable(
+export const tracerLinks = pgTable(
   "tracer_links",
   {
     id: text("id").primaryKey(),
@@ -904,9 +908,9 @@ export const tracerLinks = sqliteTable(
     sourceLabel: text("source_label").notNull(),
     destinationUrl: text("destination_url").notNull(),
     destinationUrlHash: text("destination_url_hash").notNull(),
-    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => ({
     jobPathDestinationUnique: uniqueIndex(
@@ -922,7 +926,7 @@ export const tracerLinks = sqliteTable(
   }),
 );
 
-export const tracerClickEvents = sqliteTable(
+export const tracerClickEvents = pgTable(
   "tracer_click_events",
   {
     id: text("id").primaryKey(),
@@ -936,9 +940,9 @@ export const tracerClickEvents = sqliteTable(
     tracerLinkId: text("tracer_link_id")
       .notNull()
       .references(() => tracerLinks.id, { onDelete: "cascade" }),
-    clickedAt: integer("clicked_at", { mode: "number" }).notNull(),
+    clickedAt: bigint("clicked_at", { mode: "number" }).notNull(),
     requestId: text("request_id"),
-    isLikelyBot: integer("is_likely_bot", { mode: "boolean" })
+    isLikelyBot: boolean("is_likely_bot")
       .notNull()
       .default(false),
     deviceType: text("device_type").notNull().default("unknown"),

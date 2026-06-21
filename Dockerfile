@@ -71,7 +71,7 @@ FROM build-base AS node-deps
 ARG BUILDARCH
 
 # Copy package files for dependency installation.
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY docs-site/package*.json ./docs-site/
 COPY shared/package*.json ./shared/
 COPY orchestrator/package*.json ./orchestrator/
@@ -93,9 +93,8 @@ COPY extractors/browser-utils/package*.json ./extractors/browser-utils/
 
 # Install build-time Node dependencies on the native builder platform. The
 # resulting client/docs assets are architecture-neutral static files.
-RUN --mount=type=cache,id=npm-build-${BUILDARCH},target=/root/.npm \
-    npm install --workspaces --include-workspace-root --include=dev \
-    --no-audit --no-fund --progress=false
+RUN corepack enable && corepack prepare pnpm@9.1.1 --activate && \
+    pnpm install --frozen-lockfile
 
 FROM node-deps AS build-sources
 
@@ -126,12 +125,12 @@ COPY extractors/browser-utils ./extractors/browser-utils
 FROM build-sources AS docs-build
 
 WORKDIR /app/docs-site
-RUN npm run build
+RUN pnpm run build
 
 FROM build-sources AS client-build
 
 WORKDIR /app/orchestrator
-RUN npm run build:client
+RUN pnpm run build:client
 
 # ============================================================================
 # PRODUCTION INPUT STAGES
@@ -146,7 +145,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Copy package files for production dependency installation.
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY docs-site/package*.json ./docs-site/
 COPY shared/package*.json ./shared/
 COPY orchestrator/package*.json ./orchestrator/
@@ -167,9 +166,8 @@ COPY extractors/wazzuf/package*.json ./extractors/wazzuf/
 COPY extractors/browser-utils/package*.json ./extractors/browser-utils/
 
 # Install production Node dependencies only.
-RUN --mount=type=cache,id=npm-runtime-${TARGETARCH},target=/root/.npm \
-    npm install --workspaces --include-workspace-root --omit=dev \
-    --no-audit --no-fund --progress=false
+RUN corepack enable && corepack prepare pnpm@9.1.1 --activate && \
+    pnpm install --frozen-lockfile --prod
 
 
 FROM runtime-node-deps AS camoufox-cache

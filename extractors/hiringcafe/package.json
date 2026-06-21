@@ -5,7 +5,7 @@
   "description": "Hiring Cafe extractor backed by server-rendered search pages",
   "main": "src/main.ts",
   "dependencies": {
-    "job-ops-shared": "^1.0.0",
+    "job-ops-shared": "workspace:*",
     "tsx": "^4.4.0"
   },
   "devDependencies": {

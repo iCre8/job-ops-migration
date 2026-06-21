@@ -6,7 +6,7 @@ import {
 } from "@infra/request-context";
 import { getJobOpsAppConfig } from "@server/config/app-mode";
 import { and, eq, type SQL } from "drizzle-orm";
-import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { getActiveTenantId } from "./context";
 
 export type PrivateDataScope = {
@@ -17,8 +17,8 @@ export type PrivateDataScope = {
 };
 
 type UserScopedTable = {
-  tenantId: AnySQLiteColumn;
-  userId: AnySQLiteColumn;
+  tenantId: AnyPgColumn;
+  userId: AnyPgColumn;
 };
 
 export function isHostedUserIsolationEnabled(): boolean {

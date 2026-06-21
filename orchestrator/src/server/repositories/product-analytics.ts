@@ -7,7 +7,7 @@ import {
 } from "@server/tenancy/private-scope";
 import type { SQL } from "drizzle-orm";
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
-import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 const {
   analyticsInstallState,
@@ -56,8 +56,8 @@ const INTERVIEW_STAGES = [
 type InstallState = typeof analyticsInstallState.$inferSelect;
 type MilestoneRow = typeof analyticsMilestones.$inferSelect;
 type UserScopedAnalyticsTable = {
-  tenantId: AnySQLiteColumn;
-  userId: AnySQLiteColumn;
+  tenantId: AnyPgColumn;
+  userId: AnyPgColumn;
 };
 
 type Primitive = string | number | boolean | null;
@@ -634,8 +634,8 @@ export async function claimAnalyticsServerEventReplay(args: {
         sql`(${analyticsServerEventReplays.claimedAt} IS NULL OR ${analyticsServerEventReplays.claimedAt} < ${staleBefore})`,
       ),
     )
-    .run();
-  if (updated.changes > 0) {
+    .returning({ eventKey: analyticsServerEventReplays.eventKey });
+  if (updated.length > 0) {
     return true;
   }
 
@@ -684,8 +684,8 @@ export async function claimAnalyticsServerEventReplay(args: {
           sql`(${analyticsServerEventReplays.claimedAt} IS NULL OR ${analyticsServerEventReplays.claimedAt} < ${staleBefore})`,
         ),
       )
-      .run();
-    return reclaimed.changes > 0;
+      .returning({ eventKey: analyticsServerEventReplays.eventKey });
+    return reclaimed.length > 0;
   }
 }
 

@@ -5,7 +5,7 @@
   "description": "WUZZUF extractor backed by public search result pages",
   "dependencies": {
     "cheerio": "^1.0.0",
-    "job-ops-shared": "^1.0.0"
+    "job-ops-shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -50,7 +50,12 @@ export default defineConfig({
       "../shared/src/**/*.test.ts",
       "../extractors/**/tests/**/*.test.ts",
     ],
-    exclude: ["node_modules/**", "dist/**"],
+    exclude: [
+      "node_modules/**",
+      "../**/node_modules/**",
+      "dist/**",
+      "../**/dist/**",
+    ],
   },
   resolve: {
     alias: {

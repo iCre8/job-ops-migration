@@ -117,11 +117,11 @@ export async function approvePostApplicationInboxItem(args: {
   }
 
   const decidedAt = Date.now();
-  const updated = db.transaction((tx) => {
+  const updated = await db.transaction(async (tx) => {
     let stageEventId: string | null = null;
     const decidedAtIso = new Date(decidedAt).toISOString();
 
-    const messageUpdateResult = tx
+    const messageUpdateResult = await tx
       .update(postApplicationMessages)
       .set({
         processingStatus: "manual_linked",
@@ -137,8 +137,8 @@ export async function approvePostApplicationInboxItem(args: {
           eq(postApplicationMessages.processingStatus, "pending_user"),
         ),
       )
-      .run();
-    if (messageUpdateResult.changes === 0) {
+      .returning({ id: postApplicationMessages.id });
+    if (messageUpdateResult.length === 0) {
       throw conflict(
         `Message '${message.id}' was already decided by another request.`,
       );
@@ -173,7 +173,7 @@ export async function approvePostApplicationInboxItem(args: {
     }
 
     if (message.syncRunId) {
-      tx.update(postApplicationSyncRuns)
+      await tx.update(postApplicationSyncRuns)
         .set({
           messagesApproved: sql`${postApplicationSyncRuns.messagesApproved} + 1`,
           updatedAt: decidedAtIso,
@@ -183,8 +183,7 @@ export async function approvePostApplicationInboxItem(args: {
             syncRunsScopeFilter(),
             eq(postApplicationSyncRuns.id, message.syncRunId),
           ),
-        )
-        .run();
+        );
     }
 
     return { stageEventId, resolvedTarget };
@@ -217,7 +216,7 @@ export async function denyPostApplicationInboxItem(args: {
   provider: PostApplicationProvider;
   accountKey: string;
   decidedBy?: string | null;
-}): Promise<{ message: PostApplicationMessage }> {
+  }): Promise<{ message: PostApplicationMessage }> {
   const message = await getPostApplicationMessageById(args.messageId);
   if (!message) {
     throw notFound(`Post-application message '${args.messageId}' not found.`);
@@ -235,9 +234,9 @@ export async function denyPostApplicationInboxItem(args: {
   }
 
   const decidedAt = Date.now();
-  db.transaction((tx) => {
+  await db.transaction(async (tx) => {
     const decidedAtIso = new Date(decidedAt).toISOString();
-    const messageUpdateResult = tx
+    const messageUpdateResult = await tx
       .update(postApplicationMessages)
       .set({
         processingStatus: "ignored",
@@ -253,15 +252,15 @@ export async function denyPostApplicationInboxItem(args: {
           eq(postApplicationMessages.processingStatus, "pending_user"),
         ),
       )
-      .run();
-    if (messageUpdateResult.changes === 0) {
+      .returning({ id: postApplicationMessages.id });
+    if (messageUpdateResult.length === 0) {
       throw conflict(
         `Message '${message.id}' was already decided by another request.`,
       );
     }
 
     if (message.syncRunId) {
-      tx.update(postApplicationSyncRuns)
+      await tx.update(postApplicationSyncRuns)
         .set({
           messagesDenied: sql`${postApplicationSyncRuns.messagesDenied} + 1`,
           updatedAt: decidedAtIso,
@@ -271,8 +270,7 @@ export async function denyPostApplicationInboxItem(args: {
             syncRunsScopeFilter(),
             eq(postApplicationSyncRuns.id, message.syncRunId),
           ),
-        )
-        .run();
+        );
     }
   });
 

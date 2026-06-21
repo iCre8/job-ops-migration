@@ -85,7 +85,7 @@ jobsApplicationRouter.post(
       const appliedAtDate = new Date();
       const appliedAt = appliedAtDate.toISOString();
 
-      transitionStage(
+      await transitionStage(
         job.id,
         "applied",
         Math.floor(appliedAtDate.getTime() / 1000),

@@ -157,9 +157,9 @@ export async function createPrivateWorkspaceUser(input: {
     : `${slugify(username)}-${tenantId.slice(0, 8)}`;
   const { passwordHash, passwordSalt } = await hashPassword(input.password);
 
-  db.transaction((tx) => {
+  await db.transaction(async (tx) => {
     if (input.useDefaultTenant) {
-      tx.insert(tenants)
+      await tx.insert(tenants)
         .values({
           id: DEFAULT_TENANT_ID,
           name: DEFAULT_TENANT_NAME,
@@ -167,21 +167,19 @@ export async function createPrivateWorkspaceUser(input: {
           createdAt: now,
           updatedAt: now,
         })
-        .onConflictDoNothing()
-        .run();
+        .onConflictDoNothing();
     } else {
-      tx.insert(tenants)
+      await tx.insert(tenants)
         .values({
           id: tenantId,
           name: tenantName,
           slug: tenantSlug,
           createdAt: now,
           updatedAt: now,
-        })
-        .run();
+        });
     }
 
-    tx.insert(users)
+    await tx.insert(users)
       .values({
         id: userId,
         username,
@@ -192,10 +190,9 @@ export async function createPrivateWorkspaceUser(input: {
         isDisabled: false,
         createdAt: now,
         updatedAt: now,
-      })
-      .run();
+      });
 
-    tx.insert(tenantMemberships)
+    await tx.insert(tenantMemberships)
       .values({
         id: randomUUID(),
         userId,
@@ -203,8 +200,7 @@ export async function createPrivateWorkspaceUser(input: {
         role: "owner",
         createdAt: now,
         updatedAt: now,
-      })
-      .run();
+      });
   });
 
   const user = await getUserById(userId);
@@ -223,15 +219,15 @@ export async function createHostedTenantUser(input: {
   const userId = randomUUID();
   const { passwordHash, passwordSalt } = await hashPassword(input.password);
 
-  const created = db.transaction((tx) => {
-    const tenant = tx
+  const created = await db.transaction(async (tx) => {
+    const [tenant] = await tx
       .select({ id: tenants.id })
       .from(tenants)
       .where(eq(tenants.id, input.tenantId))
-      .get();
+      .limit(1);
     if (!tenant) return false;
 
-    tx.insert(users)
+    await tx.insert(users)
       .values({
         id: userId,
         username,
@@ -242,10 +238,9 @@ export async function createHostedTenantUser(input: {
         isDisabled: false,
         createdAt: now,
         updatedAt: now,
-      })
-      .run();
+      });
 
-    tx.insert(tenantMemberships)
+    await tx.insert(tenantMemberships)
       .values({
         id: randomUUID(),
         userId,
@@ -253,8 +248,7 @@ export async function createHostedTenantUser(input: {
         role: "member",
         createdAt: now,
         updatedAt: now,
-      })
-      .run();
+      });
 
     return true;
   });
@@ -275,16 +269,16 @@ export async function createInitialSystemAdmin(input: {
   const userId = randomUUID();
   const { passwordHash, passwordSalt } = await hashPassword(input.password);
 
-  const created = db.transaction((tx) => {
-    const existing = tx
+  const created = await db.transaction(async (tx) => {
+    const [existing] = await tx
       .select({ count: sql<number>`count(*)`.as("count") })
       .from(users)
-      .get();
+      .limit(1);
     if ((existing?.count ?? 0) > 0) {
       return false;
     }
 
-    tx.insert(tenants)
+    await tx.insert(tenants)
       .values({
         id: DEFAULT_TENANT_ID,
         name: DEFAULT_TENANT_NAME,
@@ -292,10 +286,9 @@ export async function createInitialSystemAdmin(input: {
         createdAt: now,
         updatedAt: now,
       })
-      .onConflictDoNothing()
-      .run();
+      .onConflictDoNothing();
 
-    tx.insert(users)
+    await tx.insert(users)
       .values({
         id: userId,
         username,
@@ -306,10 +299,9 @@ export async function createInitialSystemAdmin(input: {
         isDisabled: false,
         createdAt: now,
         updatedAt: now,
-      })
-      .run();
+      });
 
-    tx.insert(tenantMemberships)
+    await tx.insert(tenantMemberships)
       .values({
         id: randomUUID(),
         userId,
@@ -317,8 +309,7 @@ export async function createInitialSystemAdmin(input: {
         role: "owner",
         createdAt: now,
         updatedAt: now,
-      })
-      .run();
+      });
 
     return true;
   });

@@ -1,4 +1,4 @@
-import { copyFile, mkdtemp, rm } from "node:fs/promises";
+import { copyFile, cp, mkdtemp, rm } from "node:fs/promises";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -188,10 +188,16 @@ function restoreNativeFetch(): void {
 async function importMigrationsSilently(): Promise<void> {
   console.log = () => {};
   console.warn = () => {};
-  console.error = () => {};
+  const tempError = console.error;
+  console.error = (...args) => {
+    nativeConsoleError("MIGRATION LOGGED ERROR:", ...args);
+  };
 
   try {
     await import("@server/db/migrate");
+  } catch (err) {
+    nativeConsoleError("MIGRATION THREW ERROR:", err);
+    throw err;
   } finally {
     console.log = nativeConsoleLog;
     console.warn = nativeConsoleWarn;
@@ -233,7 +239,7 @@ async function ensureMigratedDbTemplate(): Promise<string> {
       process.env = previousEnv;
     }
 
-    return join(templateDir, "jobs.db");
+    return join(templateDir, "pgdata");
   })();
 
   return migratedDbTemplatePromise;
@@ -264,11 +270,13 @@ export async function startServer(options?: {
     ...envOverrides,
   };
 
-  if (requiresLegacyBasicAuthSeed) {
-    await importMigrationsSilently();
-  } else {
-    await copyFile(await ensureMigratedDbTemplate(), join(tempDir, "jobs.db"));
-  }
+  const srcDir = await ensureMigratedDbTemplate();
+  const destDir = join(tempDir, "pgdata");
+  await cp(srcDir, destDir, { recursive: true });
+
+  const { reinitializeTestDb } = await import("@server/db/index");
+  await reinitializeTestDb(tempDir);
+
   const { applyStoredEnvOverrides } = await import(
     "@server/services/envSettings"
   );
@@ -284,7 +292,51 @@ export async function startServer(options?: {
     );
   }
   const { createApp } = await import("../../app");
-  const { closeDb } = await import("@server/db/index");
+  const { db, schema, closeDb } = await import("@server/db/index");
+
+  if (requiresLegacyBasicAuthSeed) {
+    const rawUsername = envOverrides.BASIC_AUTH_USER!.trim();
+    const username = rawUsername.toLowerCase();
+    const password = envOverrides.BASIC_AUTH_PASSWORD!.trim();
+    const { hashPassword } = await import("@server/auth/password");
+    const { randomUUID } = await import("node:crypto");
+    const { DEFAULT_TENANT_ID } = await import("@server/tenancy/constants");
+    const { eq } = await import("drizzle-orm");
+
+    const existing = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.username, username))
+      .limit(1);
+
+    if (existing.length === 0) {
+      const userId = randomUUID();
+      const membershipId = randomUUID();
+      const now = new Date().toISOString();
+      const { passwordHash, passwordSalt } = await hashPassword(password);
+
+      await db.insert(schema.users).values({
+        id: userId,
+        username,
+        displayName: rawUsername || username,
+        passwordHash,
+        passwordSalt,
+        isSystemAdmin: true,
+        isDisabled: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await db.insert(schema.tenantMemberships).values({
+        id: membershipId,
+        userId,
+        tenantId: DEFAULT_TENANT_ID,
+        role: "owner",
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
   const { getPipelineStatus } = await import("@server/pipeline/index");
   vi.mocked(getPipelineStatus).mockReturnValue({ isRunning: false });
 

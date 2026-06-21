@@ -6,7 +6,7 @@
   "main": "src/main.ts",
   "dependencies": {
     "apify-client": "^2.9.0",
-    "job-ops-shared": "^1.0.0",
+    "job-ops-shared": "workspace:*",
     "tsx": "^4.4.0"
   },
   "devDependencies": {

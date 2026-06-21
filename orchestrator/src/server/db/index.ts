@@ -2,32 +2,69 @@
  * Database connection and initialization.
  */
 
-import { existsSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { getDataDir } from "../config/dataDir";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
 
-// Database path - can be overridden via env for Docker
-const DB_PATH = join(getDataDir(), "jobs.db");
-
-// Ensure data directory exists
-const dataDir = dirname(DB_PATH);
-if (!existsSync(dataDir)) {
-  mkdirSync(dataDir, { recursive: true });
-}
-
-const sqlite = new Database(DB_PATH);
-sqlite.pragma("journal_mode = WAL");
-let isClosed = false;
-
-export const db = drizzle(sqlite, { schema });
+const isTest = process.env.NODE_ENV === "test" || typeof globalThis.vitest !== "undefined" || process.env.VITEST;
 
 export { schema };
 
-export function closeDb() {
-  if (isClosed) return;
-  sqlite.close();
-  isClosed = true;
+export let client: any;
+export let db: any;
+export let closeDb: () => void;
+
+if (isTest) {
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { drizzle: drizzlePglite } = await import("drizzle-orm/pglite");
+  const path = await import("node:path");
+  const dataDir = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, "pgdata") : undefined;
+  const localClient = new PGlite(dataDir);
+  client = localClient;
+  db = drizzlePglite(localClient, { schema }) as any;
+  closeDb = () => {
+    localClient.close().catch((err: any) => {
+      console.error("Error closing pglite database:", err);
+    });
+  };
+} else {
+  let databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl || (!databaseUrl.startsWith("postgres://") && !databaseUrl.startsWith("postgresql://"))) {
+    databaseUrl = "postgres://skillflow:skillflow@localhost:5432/jobops";
+  }
+
+  const localClient = postgres(databaseUrl, {
+    max: 10,
+  });
+  client = localClient;
+  db = drizzle(localClient, { schema });
+  
+  let isClosed = false;
+  closeDb = () => {
+    if (isClosed) return;
+    localClient.end().catch((err: any) => {
+      console.error("Error closing pg connection pool:", err);
+    });
+    isClosed = true;
+  };
+}
+
+export async function reinitializeTestDb(dataDir: string) {
+  if (!isTest) return;
+  if (client) {
+    try {
+      await client.close();
+    } catch (e) {}
+  }
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { drizzle: drizzlePglite } = await import("drizzle-orm/pglite");
+  const path = await import("node:path");
+  const localClient = new PGlite(path.join(dataDir, "pgdata"));
+  client = localClient;
+  db = drizzlePglite(localClient, { schema }) as any;
+  closeDb = () => {
+    localClient.close().catch((err: any) => {
+      console.error("Error closing pglite database:", err);
+    });
+  };
 }

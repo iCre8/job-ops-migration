@@ -68,12 +68,15 @@ describe("createTestClient", () => {
     MockPrismaClient.mockClear();
   });
 
-  it("creates a PrismaClient with the supplied URL via datasources option", () => {
+  it("creates a PrismaClient with the supplied URL override", () => {
     const client = createTestClient("mongodb://localhost:27017/test_db");
     expect(client).toBeDefined();
     expect(MockPrismaClient).toHaveBeenCalledWith(
       expect.objectContaining({
-        datasources: { db: { url: "mongodb://localhost:27017/test_db" } },
+        datasources: {
+          db: { url: "mongodb://localhost:27017/test_db" },
+        },
+        log: ["error"],
       }),
     );
   });

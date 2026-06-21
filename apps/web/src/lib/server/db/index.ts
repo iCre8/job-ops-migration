@@ -3,10 +3,7 @@ import { PrismaClient } from "@prisma/client";
 // ─── Singleton Pattern ─────────────────────────────────────────────────────────
 // Re-use a single PrismaClient across hot-reloads in development.
 //
-// Prisma v6 note: URL is set via DATABASE_URL environment variable (in schema
-// datasource) or via the datasources constructor option.
-// ISSUE-001: Prisma v7 has no MongoDB adapter yet. Upgrade when
-// @prisma/adapter-mongodb is published.
+// Prisma 6 reads DATABASE_URL from the schema datasource in runtime and CLI commands.
 //
 // Usage:
 //   import { getPrisma } from "$lib/server/db/index.js";
@@ -43,11 +40,13 @@ export function getPrisma(): PrismaClient {
 //
 // Usage (in tests):
 //   import { createTestClient } from "$lib/server/db/index.js";
-//   const prisma = createTestClient(mongod.getUri() + "dbname");
+//   const prisma = createTestClient(mongod.getUri("dbname"));
 
 export function createTestClient(url: string): PrismaClient {
   return new PrismaClient({
-    datasources: { db: { url } },
+    datasources: {
+      db: { url },
+    },
     log: ["error"],
   });
 }

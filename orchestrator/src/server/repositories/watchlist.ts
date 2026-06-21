@@ -81,21 +81,20 @@ export async function replaceWatchlistSelectedSources(
   const userId = requireActiveUserId();
   const now = new Date().toISOString();
 
-  db.transaction((tx) => {
-    tx.delete(watchlistSelectedSources)
+  await db.transaction(async (tx) => {
+    await tx.delete(watchlistSelectedSources)
       .where(
         and(
           eq(watchlistSelectedSources.tenantId, tenantId),
           eq(watchlistSelectedSources.userId, userId),
         ),
-      )
-      .run();
+      );
 
     if (input.selections.length === 0) {
       return;
     }
 
-    tx.insert(watchlistSelectedSources)
+    await tx.insert(watchlistSelectedSources)
       .values(
         input.selections.map((selection, index) => ({
           id: randomUUID(),
@@ -111,8 +110,7 @@ export async function replaceWatchlistSelectedSources(
           createdAt: now,
           updatedAt: now,
         })),
-      )
-      .run();
+      );
   });
 
   return listWatchlistSelectedSources();
@@ -209,9 +207,10 @@ export async function clearWatchlistJobState(input: {
         eq(watchlistJobStates.source, input.source),
         eq(watchlistJobStates.sourceJobId, input.sourceJobId),
       ),
-    );
+    )
+    .returning({ id: watchlistJobStates.id });
 
-  return result.changes;
+  return result.length;
 }
 
 export async function recordWatchlistCheck(
@@ -234,8 +233,8 @@ export async function recordWatchlistCheck(
     }))
     .filter((check) => check.sourceJobIds.length > 0);
 
-  return db.transaction((tx) => {
-    const existingCheckpoint = tx
+  return await db.transaction(async (tx) => {
+    const [existingCheckpoint] = await tx
       .select()
       .from(watchlistChecks)
       .where(
@@ -244,22 +243,23 @@ export async function recordWatchlistCheck(
           eq(watchlistChecks.userId, userId),
         ),
       )
-      .get();
+      .limit(1);
 
     const previousLastCheckedAt = existingCheckpoint?.lastCheckedAt ?? null;
-    const existingSeenRows = normalizedChecks.map((check) =>
-      tx
-        .select()
-        .from(watchlistSeenJobs)
-        .where(
-          and(
-            eq(watchlistSeenJobs.tenantId, tenantId),
-            eq(watchlistSeenJobs.userId, userId),
-            eq(watchlistSeenJobs.source, check.source),
-            inArray(watchlistSeenJobs.sourceJobId, check.sourceJobIds),
-          ),
-        )
-        .all(),
+    const existingSeenRows = await Promise.all(
+      normalizedChecks.map((check) =>
+        tx
+          .select()
+          .from(watchlistSeenJobs)
+          .where(
+            and(
+              eq(watchlistSeenJobs.tenantId, tenantId),
+              eq(watchlistSeenJobs.userId, userId),
+              eq(watchlistSeenJobs.source, check.source),
+              inArray(watchlistSeenJobs.sourceJobId, check.sourceJobIds),
+            ),
+          )
+      ),
     );
 
     const existingSeenByKey = new Map<
@@ -276,7 +276,7 @@ export async function recordWatchlistCheck(
         const key = `${check.source}:${sourceJobId}`;
         const existing = existingSeenByKey.get(key);
 
-        tx.insert(watchlistSeenJobs)
+        await tx.insert(watchlistSeenJobs)
           .values({
             id: existing?.id ?? randomUUID(),
             tenantId,
@@ -299,12 +299,11 @@ export async function recordWatchlistCheck(
               lastSeenAt: now,
               updatedAt: now,
             },
-          })
-          .run();
+          });
       }
     }
 
-    tx.insert(watchlistChecks)
+    await tx.insert(watchlistChecks)
       .values({
         id: existingCheckpoint?.id ?? randomUUID(),
         tenantId,
@@ -319,8 +318,7 @@ export async function recordWatchlistCheck(
           lastCheckedAt: now,
           updatedAt: now,
         },
-      })
-      .run();
+      });
 
     const jobs = normalizedChecks.flatMap((check) =>
       check.sourceJobIds.map((sourceJobId) => {

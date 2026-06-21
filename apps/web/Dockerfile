@@ -6,7 +6,7 @@ WORKDIR /app
 RUN corepack enable
 
 # Copy workspace manifests and Nx metadata first for dependency layer caching.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json tsconfig.base.json tsconfig.workspace.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml nx.json tsconfig.base.json tsconfig.workspace.json prisma.config.ts ./
 COPY apps/web/package.json apps/web/project.json ./apps/web/
 COPY apps/web/prisma ./apps/web/prisma/
 

@@ -143,7 +143,7 @@ async function createAutoStageEvent(args: {
       ? "Email received"
       : `Logged from email: ${args.stageTarget}`;
 
-  transitionStage(
+  await transitionStage(
     args.jobId,
     transition.toStage,
     Math.floor(args.receivedAt / 1000),

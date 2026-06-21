@@ -1,49 +1,39 @@
-/**
- * Database utility scripts.
- */
+import { db, closeDb, schema } from "./index";
+import { sql } from "drizzle-orm";
 
-import { existsSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
-import Database from "better-sqlite3";
-import { getDataDir } from "../config/dataDir";
-
-// Database path - can be overridden via env for Docker
-const DB_PATH = join(getDataDir(), "jobs.db");
-
-/**
- * Clear all data from the database (keeps the schema intact).
- */
-export function clearDatabase(): { jobsDeleted: number; runsDeleted: number } {
-  const sqlite = new Database(DB_PATH);
-
+export async function clearDatabase(): Promise<{ jobsDeleted: number; runsDeleted: number }> {
   try {
-    sqlite.prepare("DELETE FROM stage_events").run();
-    sqlite.prepare("DELETE FROM tasks").run();
-    sqlite.prepare("DELETE FROM interviews").run();
-    const jobsResult = sqlite.prepare("DELETE FROM jobs").run();
-    const runsResult = sqlite.prepare("DELETE FROM pipeline_runs").run();
+    await db.delete(schema.stageEvents);
+    await db.delete(schema.tasks);
+    await db.delete(schema.interviews);
+    const jobsResult = await db.delete(schema.jobs);
+    const runsResult = await db.delete(schema.pipelineRuns);
 
     console.log(
-      `🗑️ Cleared database: ${jobsResult.changes} jobs, ${runsResult.changes} pipeline runs`,
+      `🗑️ Cleared database: ${jobsResult.length} jobs, ${runsResult.length} pipeline runs`,
     );
     return {
-      jobsDeleted: jobsResult.changes,
-      runsDeleted: runsResult.changes,
+      jobsDeleted: jobsResult.length,
+      runsDeleted: runsResult.length,
     };
-  } finally {
-    sqlite.close();
+  } catch (error) {
+    console.error("Failed to clear database:", error);
+    throw error;
   }
 }
 
-/**
- * Delete database file completely (will recreate on next run).
- */
-export function dropDatabase(): void {
-  if (existsSync(DB_PATH)) {
-    unlinkSync(DB_PATH);
-    console.log("🗑️ Database file deleted");
-  } else {
-    console.log("ℹ️ No database file to delete");
+export async function dropDatabase(): Promise<void> {
+  try {
+    const tableNames = Object.keys(schema);
+    for (const key of tableNames) {
+      const table = (schema as any)[key];
+      if (table && typeof table === "object" && "_" in table && "name" in table) {
+        await db.execute(sql.raw(`TRUNCATE TABLE "${table.name}" CASCADE`));
+      }
+    }
+    console.log("🗑️ Database tables truncated successfully");
+  } catch (error) {
+    console.error("Failed to drop database:", error);
   }
 }
 
@@ -51,9 +41,20 @@ export function dropDatabase(): void {
 if (process.argv[1]?.includes("clear.ts")) {
   const arg = process.argv[2];
 
-  if (arg === "--drop") {
-    dropDatabase();
-  } else {
-    clearDatabase();
-  }
+  const run = async () => {
+    if (arg === "--drop") {
+      await dropDatabase();
+    } else {
+      await clearDatabase();
+    }
+  };
+
+  run()
+    .catch((err) => {
+      console.error("DB clear script failed:", err);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await closeDb();
+    });
 }

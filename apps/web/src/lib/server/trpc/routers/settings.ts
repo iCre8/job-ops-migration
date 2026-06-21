@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
@@ -18,7 +19,7 @@ export const settingsRouter = router({
       const merged = {
         ...((current?.data as Record<string, unknown>) ?? {}),
         ...input,
-      };
+      } as Prisma.InputJsonObject;
       return ctx.prisma.settings.upsert({
         where: { id: "singleton" },
         create: { id: "singleton", data: merged },

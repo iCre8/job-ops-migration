@@ -130,13 +130,13 @@ export async function getTasks(
   }));
 }
 
-export function transitionStage(
+export async function transitionStage(
   applicationId: string,
   toStage: ApplicationStage | "no_change",
   occurredAt?: number,
   metadata?: StageEventMetadata | null,
   outcome?: JobOutcome | null,
-): StageEvent {
+): Promise<StageEvent> {
   const parsedMetadata = metadata
     ? stageEventMetadataSchema.parse(metadata)
     : null;
@@ -145,17 +145,17 @@ export function transitionStage(
   const timestamp = occurredAt ?? now;
   const scope = getPrivateDataScope();
 
-  const { event, previousOutcome } = db.transaction((tx) => {
-    const job = tx
+  const { event, previousOutcome } = await db.transaction(async (tx) => {
+    const [job] = await tx
       .select()
       .from(jobs)
       .where(and(jobsScopeFilter(), eq(jobs.id, applicationId)))
-      .get();
+      .limit(1);
     if (!job) {
       throw new Error("Job not found");
     }
 
-    const lastEvent = tx
+    const [lastEvent] = await tx
       .select()
       .from(stageEvents)
       .where(
@@ -165,8 +165,7 @@ export function transitionStage(
         ),
       )
       .orderBy(desc(stageEvents.occurredAt))
-      .limit(1)
-      .get();
+      .limit(1);
 
     const fromStage =
       (lastEvent?.toStage as ApplicationStage | undefined) ?? null;
@@ -175,7 +174,7 @@ export function transitionStage(
     const eventId = randomUUID();
     const isNoteEvent = parsedMetadata?.eventType === "note";
 
-    tx.insert(stageEvents)
+    await tx.insert(stageEvents)
       .values({
         id: eventId,
         tenantId: scope.tenantId,
@@ -188,8 +187,7 @@ export function transitionStage(
         occurredAt: timestamp,
         metadata: parsedMetadata,
         outcome,
-      })
-      .run();
+      });
 
     const updates: Partial<typeof jobs.$inferInsert> = {
       updatedAt: new Date().toISOString(),
@@ -212,10 +210,9 @@ export function transitionStage(
       updates.closedAt = timestamp;
     }
 
-    tx.update(jobs)
+    await tx.update(jobs)
       .set(updates)
-      .where(and(jobsScopeFilter(), eq(jobs.id, applicationId)))
-      .run();
+      .where(and(jobsScopeFilter(), eq(jobs.id, applicationId)));
 
     return {
       event: {
@@ -237,7 +234,7 @@ export function transitionStage(
   return event;
 }
 
-export function updateStageEvent(
+export async function updateStageEvent(
   eventId: string,
   payload: {
     toStage?: ApplicationStage;
@@ -245,18 +242,18 @@ export function updateStageEvent(
     metadata?: StageEventMetadata | null;
     outcome?: JobOutcome | null;
   },
-): void {
+): Promise<void> {
   const { toStage, occurredAt, metadata, outcome } = payload;
   const parsedMetadata = metadata
     ? stageEventMetadataSchema.parse(metadata)
     : undefined;
   const hasOutcome = Object.hasOwn(payload, "outcome");
-  db.transaction((tx) => {
-    const event = tx
+  await db.transaction(async (tx) => {
+    const [event] = await tx
       .select()
       .from(stageEvents)
       .where(and(stageEventsScopeFilter(), eq(stageEvents.id, eventId)))
-      .get();
+      .limit(1);
     if (!event) throw new Error("Event not found");
 
     const updates: Partial<typeof stageEvents.$inferInsert> = {};
@@ -273,13 +270,12 @@ export function updateStageEvent(
       updates.outcome = null;
     }
 
-    tx.update(stageEvents)
+    await tx.update(stageEvents)
       .set(updates)
-      .where(and(stageEventsScopeFilter(), eq(stageEvents.id, eventId)))
-      .run();
+      .where(and(stageEventsScopeFilter(), eq(stageEvents.id, eventId)));
 
     // If this was the latest event, update the job status
-    const lastEvent = tx
+    const [lastEvent] = await tx
       .select()
       .from(stageEvents)
       .where(
@@ -289,15 +285,14 @@ export function updateStageEvent(
         ),
       )
       .orderBy(desc(stageEvents.occurredAt))
-      .limit(1)
-      .get();
+      .limit(1);
 
     if (lastEvent && lastEvent.id === eventId) {
-      const job = tx
+      const [job] = await tx
         .select()
         .from(jobs)
         .where(and(jobsScopeFilter(), eq(jobs.id, event.applicationId)))
-        .get();
+        .limit(1);
       if (!job) throw new Error("Job not found");
 
       const metadata = parseMetadata(lastEvent.metadata);
@@ -311,34 +306,32 @@ export function updateStageEvent(
         jobClosedAt: job.closedAt ?? null,
       });
 
-      tx.update(jobs)
+      await tx.update(jobs)
         .set({
           status: STAGE_TO_STATUS[lastStage],
           outcome,
           closedAt,
           updatedAt: new Date().toISOString(),
         })
-        .where(and(jobsScopeFilter(), eq(jobs.id, event.applicationId)))
-        .run();
+        .where(and(jobsScopeFilter(), eq(jobs.id, event.applicationId)));
     }
   });
 }
 
-export function deleteStageEvent(eventId: string): void {
-  db.transaction((tx) => {
-    const event = tx
+export async function deleteStageEvent(eventId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [event] = await tx
       .select()
       .from(stageEvents)
       .where(and(stageEventsScopeFilter(), eq(stageEvents.id, eventId)))
-      .get();
+      .limit(1);
     if (!event) return;
 
-    tx.delete(stageEvents)
-      .where(and(stageEventsScopeFilter(), eq(stageEvents.id, eventId)))
-      .run();
+    await tx.delete(stageEvents)
+      .where(and(stageEventsScopeFilter(), eq(stageEvents.id, eventId)));
 
     // Update job status based on the new latest event
-    const lastEvent = tx
+    const [lastEvent] = await tx
       .select()
       .from(stageEvents)
       .where(
@@ -348,15 +341,14 @@ export function deleteStageEvent(eventId: string): void {
         ),
       )
       .orderBy(desc(stageEvents.occurredAt))
-      .limit(1)
-      .get();
+      .limit(1);
 
     if (lastEvent) {
-      const job = tx
+      const [job] = await tx
         .select()
         .from(jobs)
         .where(and(jobsScopeFilter(), eq(jobs.id, event.applicationId)))
-        .get();
+        .limit(1);
       if (!job) throw new Error("Job not found");
 
       const metadata = parseMetadata(lastEvent.metadata);
@@ -370,19 +362,18 @@ export function deleteStageEvent(eventId: string): void {
         jobClosedAt: job.closedAt ?? null,
       });
 
-      tx.update(jobs)
+      await tx.update(jobs)
         .set({
           status: STAGE_TO_STATUS[lastStage],
           outcome,
           closedAt,
           updatedAt: new Date().toISOString(),
         })
-        .where(and(jobsScopeFilter(), eq(jobs.id, event.applicationId)))
-        .run();
+        .where(and(jobsScopeFilter(), eq(jobs.id, event.applicationId)));
     } else {
       // If no events left, maybe revert to discovered?
       // For now just keep it as is or set to discovered if it was applied
-      tx.update(jobs)
+      await tx.update(jobs)
         .set({
           status: "discovered",
           appliedAt: null,
@@ -390,8 +381,7 @@ export function deleteStageEvent(eventId: string): void {
           closedAt: null,
           updatedAt: new Date().toISOString(),
         })
-        .where(and(jobsScopeFilter(), eq(jobs.id, event.applicationId)))
-        .run();
+        .where(and(jobsScopeFilter(), eq(jobs.id, event.applicationId)));
     }
   });
 }

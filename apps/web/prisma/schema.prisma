@@ -1,22 +1,20 @@
 // schema.prisma
-// Job-Ops Migration — MongoDB + Prisma v6/v7
+// Job-Ops Migration — MongoDB + Prisma 6
 //
 // IMPORTANT: MongoDB connector does not support `prisma migrate`.
-// Apply all schema changes with: npx prisma db push
+// Apply all schema changes with: pnpm db:push
 // Record every change in SCHEMA_CHANGELOG.md before pushing.
 //
 // Referential actions (onDelete/onUpdate) are NOT enforced by MongoDB.
 // Cascades must be handled in application code (repositories/services).
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
 }
 
-// Prisma v6: URL set via DATABASE_URL env var.
-// ISSUE-001: Prisma v7 has no MongoDB adapter — using v6 until @prisma/adapter-mongodb
-// is published. Upgrade path tracked in Status.md Decisions Log.
 datasource db {
   provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 // ─── Embedded Types ────────────────────────────────────────────────────────────

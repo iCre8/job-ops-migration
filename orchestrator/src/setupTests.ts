@@ -49,3 +49,18 @@ if (!hasStorageShape(globalThis.localStorage)) {
     value: storage,
   });
 }
+
+// Polyfill Blob.prototype.arrayBuffer for JSDOM
+if (typeof Blob !== "undefined" && !Blob.prototype.arrayBuffer) {
+  Blob.prototype.arrayBuffer = async function (this: Blob) {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(reader.result as ArrayBuffer);
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(this);
+    });
+  };
+}
+

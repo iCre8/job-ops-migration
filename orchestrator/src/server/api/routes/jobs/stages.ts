@@ -46,7 +46,7 @@ jobsStagesRouter.get("/:id/tasks", async (req: Request, res: Response) => {
 jobsStagesRouter.post("/:id/stages", async (req: Request, res: Response) => {
   try {
     const input = transitionStageSchema.parse(req.body);
-    const event = transitionStage(
+    const event = await transitionStage(
       req.params.id,
       input.toStage,
       input.occurredAt ?? undefined,
@@ -73,7 +73,7 @@ jobsStagesRouter.patch(
   async (req: Request, res: Response) => {
     try {
       const input = updateStageEventSchema.parse(req.body);
-      updateStageEvent(req.params.eventId, input);
+      await updateStageEvent(req.params.eventId, input);
       ok(res, null);
       queueMicrotask(() => {
         void reconcileActivationMilestonesFromHistorySafely({
@@ -95,7 +95,7 @@ jobsStagesRouter.delete(
   "/:id/events/:eventId",
   async (req: Request, res: Response) => {
     try {
-      deleteStageEvent(req.params.eventId);
+      await deleteStageEvent(req.params.eventId);
       ok(res, null);
       queueMicrotask(() => {
         void reconcileActivationMilestonesFromHistorySafely({

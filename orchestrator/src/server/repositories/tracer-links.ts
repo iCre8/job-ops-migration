@@ -70,8 +70,16 @@ function randomTraceCode(): string {
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
+  if (error && typeof error === "object") {
+    if ("code" in error && error.code === "23505") {
+      return true;
+    }
+  }
   if (!(error instanceof Error)) return false;
-  return error.message.toLowerCase().includes("unique constraint failed");
+  return (
+    error.message.toLowerCase().includes("unique constraint failed") ||
+    error.message.toLowerCase().includes("duplicate key value violates unique constraint")
+  );
 }
 
 function buildEventFilters(args: AnalyticsFilterArgs) {
@@ -136,7 +144,7 @@ export async function getOrCreateTracerLink(args: {
     attemptedCodes.add(suffix);
     const token = `${slugPrefix}-${suffix}`;
 
-    let insertResult: { changes: number } | null = null;
+    let insertResult: Array<{ id: string }> | null = null;
     try {
       insertResult = await db
         .insert(tracerLinks)
@@ -155,14 +163,14 @@ export async function getOrCreateTracerLink(args: {
           updatedAt: now,
         })
         .onConflictDoNothing()
-        .run();
+        .returning({ id: tracerLinks.id });
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
         throw error;
       }
     }
 
-    if (insertResult?.changes && insertResult.changes > 0) {
+    if (insertResult && insertResult.length > 0) {
       const [created] = await db
         .select()
         .from(tracerLinks)
@@ -368,7 +376,7 @@ export async function getTracerAnalyticsTimeSeries(
 
   const rows = await db
     .select({
-      day: sql<string>`date(${tracerClickEvents.clickedAt}, 'unixepoch')`,
+      day: sql<string>`to_char(to_timestamp(${tracerClickEvents.clickedAt}), 'YYYY-MM-DD')`,
       clicks: sql<number>`count(${tracerClickEvents.id})`,
       uniqueOpens: sql<number>`count(distinct ${tracerClickEvents.uniqueFingerprintHash})`,
       botClicks: sql<number>`coalesce(sum(case when ${tracerClickEvents.isLikelyBot} = 1 then 1 else 0 end), 0)`,
@@ -376,8 +384,8 @@ export async function getTracerAnalyticsTimeSeries(
     .from(tracerClickEvents)
     .innerJoin(tracerLinks, eq(tracerClickEvents.tracerLinkId, tracerLinks.id))
     .where(filters.length > 0 ? and(...filters) : undefined)
-    .groupBy(sql`date(${tracerClickEvents.clickedAt}, 'unixepoch')`)
-    .orderBy(sql`date(${tracerClickEvents.clickedAt}, 'unixepoch') asc`);
+    .groupBy(sql`to_char(to_timestamp(${tracerClickEvents.clickedAt}), 'YYYY-MM-DD')`)
+    .orderBy(sql`to_char(to_timestamp(${tracerClickEvents.clickedAt}), 'YYYY-MM-DD') asc`);
 
   return rows.map((row) => {
     const clicks = normalizeNumber(row.clicks);

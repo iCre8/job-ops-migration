@@ -401,9 +401,10 @@ export async function deleteJobNote(input: {
         eq(jobNotes.id, input.noteId),
         eq(jobNotes.jobId, input.jobId),
       ),
-    );
+    )
+    .returning({ id: jobNotes.id });
 
-  return result.changes;
+  return result.length;
 }
 
 export async function listJobSummariesByIds(jobIds: string[]): Promise<
@@ -531,9 +532,16 @@ async function insertJob(input: CreateJobInput): Promise<Job> {
 }
 
 function isJobUrlUniqueViolation(error: unknown): boolean {
+  if (error && typeof error === "object") {
+    if ("code" in error && error.code === "23505") {
+      return true;
+    }
+  }
   if (!(error instanceof Error)) return false;
-  return /UNIQUE constraint failed: (jobs\.job_url|jobs\.tenant_id, jobs\.job_url|jobs\.tenant_id, jobs\.user_id, jobs\.job_url|index ['"]idx_jobs_tenant_user_job_url_unique['"])/i.test(
-    error.message,
+  return (
+    /UNIQUE constraint failed: (jobs\.job_url|jobs\.tenant_id, jobs\.job_url|jobs\.tenant_id, jobs\.user_id, jobs\.job_url|index ['"]idx_jobs_tenant_user_job_url_unique['"])/i.test(
+      error.message,
+    ) || /duplicate key value violates unique constraint/i.test(error.message)
   );
 }
 
@@ -702,9 +710,9 @@ export async function finalizeGeneratedPdfIfCurrent(input: {
       readyAt: sql`coalesce(${jobs.readyAt}, ${now})`,
     })
     .where(and(...conditions))
-    .run();
+    .returning({ id: jobs.id });
 
-  if (result.changes === 0) return null;
+  if (result.length === 0) return null;
   return getJobById(input.id);
 }
 
@@ -810,8 +818,8 @@ export async function deleteJobsByStatus(status: JobStatus): Promise<number> {
   const result = await db
     .delete(jobs)
     .where(and(jobsScopeFilter(), eq(jobs.status, status)))
-    .run();
-  return result.changes;
+    .returning({ id: jobs.id });
+  return result.length;
 }
 
 /**
@@ -828,8 +836,8 @@ export async function deleteJobsBelowScore(threshold: number): Promise<number> {
         ne(jobs.status, "in_progress"),
       ),
     )
-    .run();
-  return result.changes;
+    .returning({ id: jobs.id });
+  return result.length;
 }
 
 // Helper to map database row to Job type
