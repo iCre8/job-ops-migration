@@ -151,6 +151,24 @@ export type JobPdfFreshness =
   | "stale"
   | "regenerating";
 
+export type JobVerificationStatus = "unverified" | "verifying" | "completed" | "failed";
+
+export type JobVerificationVerdict =
+  | "likely_real"
+  | "needs_verification"
+  | "possible_ghost"
+  | "likely_scam"
+  | "insufficient_evidence";
+
+export type JobVerificationPriority = "high" | "medium" | "low" | "do_not_apply";
+
+export interface JobVerificationDetails {
+  evidence: string[];
+  redFlags: string[];
+  missingEvidence: string[];
+  recommendedNextStep: string;
+}
+
 export interface AppliedDuplicateMatch {
   jobId: string;
   title: string;
@@ -218,6 +236,15 @@ export interface Job {
   sponsorMatchNames: string | null; // JSON array of matched sponsor names (when 100% matches or top match)
   appliedDuplicateMatch?: AppliedDuplicateMatch | null; // Included on detail responses and may be omitted on list responses
 
+  // Verification fields
+  verificationStatus: JobVerificationStatus;
+  verificationVerdict: JobVerificationVerdict | null;
+  verificationScore: number | null;
+  verificationPriority: JobVerificationPriority | null;
+  verificationDetails: JobVerificationDetails | null;
+  verificationOutreachMessage: string | null;
+  verificationRunAt: string | null;
+
   // JobSpy fields (nullable for non-JobSpy sources)
   jobType: string | null;
   salarySource: string | null;
@@ -283,6 +310,11 @@ export type JobListItem = Pick<
   | "readyAt"
   | "appliedAt"
   | "updatedAt"
+  | "verificationStatus"
+  | "verificationVerdict"
+  | "verificationScore"
+  | "verificationPriority"
+  | "verificationRunAt"
 >;
 
 export interface CreateJobInput {
@@ -560,6 +592,15 @@ export interface UpdateJobInput {
   appliedAt?: string;
   sponsorMatchScore?: number;
   sponsorMatchNames?: string;
+
+  // Verification fields
+  verificationStatus?: JobVerificationStatus;
+  verificationVerdict?: JobVerificationVerdict | null;
+  verificationScore?: number | null;
+  verificationPriority?: JobVerificationPriority | null;
+  verificationDetails?: JobVerificationDetails | null;
+  verificationOutreachMessage?: string | null;
+  verificationRunAt?: string | null;
 }
 
 export interface CreateJobNoteInput {

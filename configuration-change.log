@@ -12,3 +12,23 @@
 ### Dev Server Watcher Workarounds
 - **Vite Polling Overrides**: Updated `orchestrator/vite.config.ts` under the `server` block with `watch: { usePolling: true }` to disable Vite's standard inotify file watchers, bypassing the `ENOSPC` limit.
 - **Backend Watcher Disabling**: Adjusted `dev:server` NPM script in `orchestrator/package.json` to execute `"tsx src/server/index.ts"` directly without the `watch` modifier. This prevents node filesystem watchers from being initialized for server-side code in resource-constrained container/development environments.
+
+## [2026-06-21] Auth Environment Variable Clarification
+
+### BASIC_AUTH_USER / BASIC_AUTH_PASSWORD Semantics Change
+- **Previous behavior**: These vars provided HTTP Basic Auth credentials for protecting the app and API.
+- **Current behavior**: HTTP Basic Auth has been removed. These vars are now used exclusively by `db:migrate` to seed the first admin user when no users exist in the database. Once any user exists, the vars are ignored.
+- **Updated**: `.env.example` comment corrected from "authentication for protected app and API access" to "First-run user seed."
+- **Updated**: `README.md` now includes a "First-Run Authentication" section explaining the JWT auth flow and migration seed pattern.
+- **No code changes required**: The runtime behavior already matched this description; only documentation was incorrect.
+
+## [2026-06-21] Hermes Agent Integration
+
+### Package Workspace Configurations
+- **Workspace Manifest updates**: Registered `apps/hermes-agent` as a valid monorepo workspace project in the root `package.json`.
+- **Worker Configuration Files**: Added package configs, compiler targets, and lint/build targets in `apps/hermes-agent/package.json` and compiler settings in root `tsconfig.json`.
+- **Vitest Environment mapping**: Set up `apps/hermes-agent/vitest.config.ts` defining `@shared` path resolving to enable module imports.
+
+### Environment Schema Updates
+- **Verification Environment Variables**: Added placeholder configuration mappings in `.env.example` defining database credentials for the background service execution.
+

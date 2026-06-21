@@ -28,6 +28,7 @@ import {
 } from "react-router-dom";
 import { toast } from "sonner";
 import { JobBriefPane } from "@/client/components/JobBriefPane";
+import { VerificationCard } from "@/client/components/VerificationCard";
 import { JobDescriptionPanel } from "@/client/components/JobDescriptionPanel";
 import { invalidateJobData } from "@/client/hooks/queries/invalidate";
 import {
@@ -37,6 +38,7 @@ import {
   useRescoreJobMutation,
   useSkipJobMutation,
   useUpdateJobMutation,
+  useTriggerJobVerificationMutation,
 } from "@/client/hooks/queries/useJobMutations";
 import { useProfile } from "@/client/hooks/useProfile";
 import { useQueryErrorToast } from "@/client/hooks/useQueryErrorToast";
@@ -199,6 +201,7 @@ export const JobPage: React.FC = () => {
   const rescoreJobMutation = useRescoreJobMutation();
   const generatePdfMutation = useGenerateJobPdfMutation();
   const checkSponsorMutation = useCheckSponsorMutation();
+  const triggerVerificationMutation = useTriggerJobVerificationMutation();
 
   const job = jobQuery.data ?? null;
   const events = mergeEvents(eventsQuery.data ?? [], pendingEventRef.current);
@@ -422,6 +425,14 @@ export const JobPage: React.FC = () => {
     });
   };
 
+  const handleVerify = async () => {
+    await runAction("verify", async () => {
+      if (!job) return;
+      await triggerVerificationMutation.mutateAsync(job.id);
+      toast.success("Verification enqueued");
+    });
+  };
+
   const handleCopyJobInfo = async () => {
     if (!job) return;
     try {
@@ -583,6 +594,12 @@ export const JobPage: React.FC = () => {
                 />
 
                 <JobBriefPane job={job} />
+
+                <VerificationCard
+                  job={job}
+                  isVerifying={activeAction === "verify"}
+                  onVerify={handleVerify}
+                />
 
                 <div className="grid gap-4 lg:grid-cols-2">
                   <article className="rounded-xl border border-border/50 bg-card/75 p-4">

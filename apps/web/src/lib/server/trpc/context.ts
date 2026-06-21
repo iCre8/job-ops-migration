@@ -5,6 +5,7 @@ export async function createContext(event: RequestEvent) {
   return {
     prisma: getPrisma(),
     requestId: event.request.headers.get("x-request-id") ?? crypto.randomUUID(),
+    user: event.locals.user,
     event,
   };
 }

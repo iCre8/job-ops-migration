@@ -86,6 +86,11 @@ export function toJobListItem(
     readyAt: job.readyAt,
     appliedAt: job.appliedAt,
     updatedAt: job.updatedAt,
+    verificationStatus: job.verificationStatus,
+    verificationVerdict: job.verificationVerdict,
+    verificationScore: job.verificationScore,
+    verificationPriority: job.verificationPriority,
+    verificationRunAt: job.verificationRunAt,
   };
 }
 

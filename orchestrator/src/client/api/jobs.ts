@@ -445,3 +445,10 @@ export async function updateJobOutcome(
     body: JSON.stringify(input),
   });
 }
+
+export async function triggerJobVerification(id: string): Promise<Job> {
+  return fetchApi<Job>(`/jobs/${id}/verify`, {
+    method: "POST",
+  });
+}
+

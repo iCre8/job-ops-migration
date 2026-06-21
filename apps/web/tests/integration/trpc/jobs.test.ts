@@ -41,6 +41,7 @@ function makeCaller() {
   return createCallerFactory(appRouter)({
     prisma,
     requestId: "integration-test",
+    user: undefined,
     event: {} as never,
   });
 }

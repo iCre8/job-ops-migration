@@ -17,6 +17,7 @@ function makeCaller() {
   return createCaller({
     prisma: mockPrisma,
     requestId: "test-req-id",
+    user: undefined,
     event: {} as never,
   });
 }

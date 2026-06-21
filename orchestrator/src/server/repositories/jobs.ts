@@ -169,6 +169,11 @@ export async function getJobListItems(
     readyAt: jobs.readyAt,
     appliedAt: jobs.appliedAt,
     updatedAt: jobs.updatedAt,
+    verificationStatus: jobs.verificationStatus,
+    verificationVerdict: jobs.verificationVerdict,
+    verificationScore: jobs.verificationScore,
+    verificationPriority: jobs.verificationPriority,
+    verificationRunAt: jobs.verificationRunAt,
   } as const;
 
   const query =
@@ -910,6 +915,16 @@ function mapRowToJob(row: typeof jobs.$inferSelect): Job {
     companyReviewsCount: row.companyReviewsCount ?? null,
     vacancyCount: row.vacancyCount ?? null,
     workFromHomeType: row.workFromHomeType ?? null,
+
+    // Verification fields
+    verificationStatus: row.verificationStatus,
+    verificationVerdict: row.verificationVerdict ?? null,
+    verificationScore: row.verificationScore ?? null,
+    verificationPriority: row.verificationPriority ?? null,
+    verificationDetails: row.verificationDetails as any,
+    verificationOutreachMessage: row.verificationOutreachMessage ?? null,
+    verificationRunAt: row.verificationRunAt ?? null,
+
     discoveredAt: row.discoveredAt,
     processedAt: row.processedAt,
     readyAt: row.readyAt,

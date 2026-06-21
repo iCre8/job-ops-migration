@@ -159,3 +159,14 @@ export function useDeleteJobNoteMutation() {
     },
   });
 }
+
+export function useTriggerJobVerificationMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.triggerJobVerification(id),
+    onSuccess: async (_data, id) => {
+      await invalidateJobData(queryClient, id);
+    },
+  });
+}
+

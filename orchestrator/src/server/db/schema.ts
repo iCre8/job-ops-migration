@@ -180,6 +180,32 @@ export const jobs = pgTable(
     sponsorMatchScore: doublePrecision("sponsor_match_score"),
     sponsorMatchNames: text("sponsor_match_names"),
 
+    // Verification fields
+    verificationStatus: text("verification_status", {
+      enum: ["unverified", "verifying", "completed", "failed"],
+    })
+      .notNull()
+      .default("unverified"),
+    verificationVerdict: text("verification_verdict", {
+      enum: [
+        "likely_real",
+        "needs_verification",
+        "possible_ghost",
+        "likely_scam",
+        "insufficient_evidence",
+      ],
+    }),
+    verificationScore: integer("verification_score"),
+    verificationPriority: text("verification_priority", {
+      enum: ["high", "medium", "low", "do_not_apply"],
+    }),
+    verificationDetails: jsonb("verification_details"),
+    verificationOutreachMessage: text("verification_outreach_message"),
+    verificationRunAt: timestamp("verification_run_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+
     // Timestamps
     discoveredAt: timestamp("discovered_at", { withTimezone: true, mode: "string" })
       .notNull()

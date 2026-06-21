@@ -78,6 +78,13 @@ export const createJob = (overrides: Partial<Job> = {}): Job => ({
   appliedAt: null,
   createdAt: "2025-01-01T00:00:00Z",
   updatedAt: "2025-01-01T00:00:00Z",
+  verificationStatus: "unverified",
+  verificationVerdict: null,
+  verificationScore: null,
+  verificationPriority: null,
+  verificationDetails: null,
+  verificationOutreachMessage: null,
+  verificationRunAt: null,
   ...overrides,
 });
 

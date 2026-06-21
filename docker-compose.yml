@@ -50,6 +50,23 @@ services:
       retries: 3
       start_period: 10s
 
+  hermes-agent:
+    build:
+      context: .
+      dockerfile: apps/hermes-agent/Dockerfile
+    container_name: hermes-agent
+    depends_on:
+      - job-ops
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+    env_file:
+      - path: ./.env
+        required: false
+    restart: unless-stopped
+
 secrets:
   github_token:
     environment: GITHUB_TOKEN

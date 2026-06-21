@@ -1,0 +1,30 @@
+terminal:
+  backend: local
+  cwd: "."
+  timeout: 360
+  home_mode: auto
+
+web:
+  backend: tavily
+  search_backend: tavily
+  extract_backend: firecrawl
+
+agent:
+  max_iterations: 60
+  api_max_retries: 2
+
+auxiliary:
+  web_extract:
+    provider: auto
+    model: ""
+    timeout: 360
+
+  mcp:
+    provider: auto
+    model: ""
+    timeout: 120
+
+updates:
+  pre_update_backup: true
+  backup_keep: 5
+  non_interactive_local_changes: stash

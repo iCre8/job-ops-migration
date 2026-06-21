@@ -12,3 +12,5 @@ export { Stats } from "./Stats";
 export { StatusBadge } from "./StatusBadge";
 export { TailoredSummary } from "./TailoredSummary";
 export { Tip } from "./Tip";
+export { VerificationCard } from "./VerificationCard";
+

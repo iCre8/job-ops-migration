@@ -139,6 +139,11 @@ export function toJobListItem(job: WatchlistJobResult): JobListItem {
     readyAt: null,
     appliedAt: null,
     updatedAt: now,
+    verificationStatus: "unverified",
+    verificationVerdict: null,
+    verificationScore: null,
+    verificationPriority: null,
+    verificationRunAt: null,
   };
 }
 

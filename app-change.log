@@ -12,7 +12,23 @@
   - `src/server/repositories/users.ts`
 - **Constraint Error Handlers**: Modified `isJobUrlUniqueViolation` inside the jobs repository to recognize PostgreSQL unique constraint code `23505` rather than SQLite-specific constraint failed strings.
 - **Awaiting Async Operations**: Fixed a missing `await` on the async `transitionStage()` call inside the post-application review service (`service.ts`).
+- **Deadlock and Transaction Isolation Fix**: Moved `transitionStage` call outside the database transaction block in `approvePostApplicationInboxItem`. Because `transitionStage` starts its own nested transaction on the connection pool, calling it within the outer message approval transaction caused locks and execution hangs on PostgreSQL and PGlite.
+
 
 ### Timezone & Localization Enhancements
 - **Applications Chart Dates**: Adjusted `ApplicationsPerDayChart.tsx` tick and label formatters to parse incoming date strings (in `YYYY-MM-DD` format) by splitting their year/month/day components manually and creating a local date object. This avoids default `new Date("YYYY-MM-DD")` parsing shifts caused by runner timezone offsets.
 - **Job Posting Age Utility**: Replaced local-day calculations (`startOfLocalDay`) in `job-posting-age.ts` with a UTC-based `startOfUtcDay` using `Date.UTC` to keep posting relative age tags timezone-safe and consistent between local testing and remote hosts.
+
+## [2026-06-21] Hermes Agent Integration
+
+### Background Worker Service
+- **Job Verification Daemon**: Built a new background service package `apps/hermes-agent` that polls the database for unverified jobs (status `unverified`), executes the local `hermes run --skill job-verification` command as a subprocess, parses structured JSON outputs (supporting evidence, red flags, recommended next steps, and recruiter outreach copy), and saves the verdict back to the database.
+- **Database Integration**: Set up Drizzle connection utility with PGlite fallbacks to support integration tests.
+
+### Express API Endpoint
+- **Manual Verification Trigger Route**: Added a `POST /api/jobs/:id/verify` endpoint in the orchestrator server to transition a job's verification status to `unverified`, prompting the background worker to execute verification.
+
+### Frontend UI Enhancement
+- **Verification Card Component**: Added a premium `VerificationCard` component to render the audit details. The card shows verdict badges (Likely Real, Needs Verification, Possible Ghost, Likely Scam, Insufficient Evidence), confidence percentages, structured evidence list, red flags, recommended next steps, and a one-click copyable Recruiter Outreach Message.
+- **Job Page Wiring**: Integrated `VerificationCard` into the primary job details page overview panel, enabling real-time status polling and manual re-verification triggers.
+

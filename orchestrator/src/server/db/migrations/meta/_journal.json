@@ -8,6 +8,13 @@
       "when": 1782062477481,
       "tag": "0000_round_warbird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782082131610,
+      "tag": "0001_fearless_darwin",
+      "breakpoints": true
     }
   ]
 }

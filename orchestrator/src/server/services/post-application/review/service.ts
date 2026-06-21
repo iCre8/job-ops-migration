@@ -117,8 +117,14 @@ export async function approvePostApplicationInboxItem(args: {
   }
 
   const decidedAt = Date.now();
+  const resolvedTarget =
+    args.stageTarget ??
+    (args.toStage as PostApplicationRouterStageTarget | undefined) ??
+    message.stageTarget ??
+    stageTargetFromMessageType(message.messageType);
+  const transition = resolveStageTransitionForTarget(resolvedTarget);
+
   const updated = await db.transaction(async (tx) => {
-    let stageEventId: string | null = null;
     const decidedAtIso = new Date(decidedAt).toISOString();
 
     const messageUpdateResult = await tx
@@ -144,34 +150,6 @@ export async function approvePostApplicationInboxItem(args: {
       );
     }
 
-    const resolvedTarget =
-      args.stageTarget ??
-      (args.toStage as PostApplicationRouterStageTarget | undefined) ??
-      message.stageTarget ??
-      stageTargetFromMessageType(message.messageType);
-    const transition = resolveStageTransitionForTarget(resolvedTarget);
-
-    if (transition.toStage !== "no_change") {
-      const event = await transitionStage(
-        resolvedJobId,
-        transition.toStage,
-        Math.floor(
-          Number.isFinite(message.receivedAt)
-            ? message.receivedAt / 1000
-            : decidedAt / 1000,
-        ),
-        {
-          actor: "system",
-          eventType: "status_update",
-          eventLabel: `Post-application: ${resolvedTarget}`,
-          note: args.note ?? null,
-          reasonCode: transition.reasonCode ?? "post_application_manual_linked",
-        },
-        transition.outcome,
-      );
-      stageEventId = event.id;
-    }
-
     if (message.syncRunId) {
       await tx.update(postApplicationSyncRuns)
         .set({
@@ -186,8 +164,30 @@ export async function approvePostApplicationInboxItem(args: {
         );
     }
 
-    return { stageEventId, resolvedTarget };
+    return { resolvedTarget };
   });
+
+  let stageEventId: string | null = null;
+  if (transition.toStage !== "no_change") {
+    const event = await transitionStage(
+      resolvedJobId,
+      transition.toStage,
+      Math.floor(
+        Number.isFinite(message.receivedAt)
+          ? message.receivedAt / 1000
+          : decidedAt / 1000,
+      ),
+      {
+        actor: "system",
+        eventType: "status_update",
+        eventLabel: `Post-application: ${resolvedTarget}`,
+        note: args.note ?? null,
+        reasonCode: transition.reasonCode ?? "post_application_manual_linked",
+      },
+      transition.outcome,
+    );
+    stageEventId = event.id;
+  }
 
   const updatedMessage = await getPostApplicationMessageById(message.id);
 
@@ -198,17 +198,18 @@ export async function approvePostApplicationInboxItem(args: {
   }
 
   void trackServerProductEvent(
-    "tracking_email_matched",
+    "post_application_inbox_action",
     {
-      provider: args.provider,
-      match_mode: "manual_review",
+      action: "approve",
+      message_id: message.id,
+      job_id: resolvedJobId,
       stage_target: updated.resolvedTarget,
       result: "success",
     },
     { urlPath: "/tracking-inbox" },
   );
 
-  return { message: updatedMessage, stageEventId: updated.stageEventId };
+  return { message: updatedMessage, stageEventId };
 }
 
 export async function denyPostApplicationInboxItem(args: {

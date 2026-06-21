@@ -35,6 +35,11 @@ const createJob = (overrides: Partial<JobListItem> = {}): JobListItem => ({
   readyAt: null,
   appliedAt: null,
   updatedAt: "2025-01-01T00:00:00Z",
+  verificationStatus: "unverified",
+  verificationVerdict: null,
+  verificationScore: null,
+  verificationPriority: null,
+  verificationRunAt: null,
   ...overrides,
 });
 

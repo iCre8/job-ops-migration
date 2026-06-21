@@ -9,3 +9,13 @@
 ### Test Environment Virtualization
 - **PGlite Integration**: Replaced memory-only SQLite configuration in test mode with `@electric-sql/pglite` (a WASM/JS Postgres engine).
 - **Test Database Isolation**: PGlite provides 100% dialect parity with standard PostgreSQL, allowing integration tests to verify PG-specific features (JSONB, UUID generation, native dates) without running a full PostgreSQL service container.
+
+## [2026-06-21] Hermes Agent Integration
+
+### Database Migrations
+- **Job Verification Columns**: Generated and executed a migration script (`0001_fearless_darwin.sql`) mapping columns (`verification_status`, `verification_verdict`, `verification_score`, `verification_priority`, `verification_details`, `verification_outreach_message`, and `verification_run_at`) to the PostgreSQL database table `jobs`.
+
+### Deployment & Orchestration
+- **Docker Compose Updates**: Embedded the new `hermes-agent` service definition inside `docker-compose.yml`, linking it to the shared database container and setting dependency ordering on successful migration execution.
+- **Background Worker Dockerfile**: Designed `apps/hermes-agent/Dockerfile` targeting Alpine linux to build and run the daemon service.
+
