@@ -7,29 +7,35 @@ node_modules/
 **/node_modules/
 **/.package-lock.json
 package-lock.json
+yarn.lock
+
+# Nx / build outputs
+.nx/
+dist/
+build/
+coverage/
+test-results/
 apps/*/.svelte-kit/
 apps/*/test-results/
 apps/*/coverage/
 apps/*/build/
 .svelte-kit/
-test-results/
-coverage/
-dist/
-build/
-.nx/
-yarn.lock
 **/.docusaurus/
 docs-site/.docusaurus/
 docs-site/build/
 
-# Data directory (bind mount in Docker)
+# Data directory and runtime storage
 data/
-*.sh
+storage/
+tmp/
 
 # Extractor storage outputs and cached auth
 extractors/ukvisajobs/storage/
 
-# OS files
+# Python virtual environments
+.venv/
+
+# OS / editor files
 .DS_Store
 Thumbs.db
 .vercel

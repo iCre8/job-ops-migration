@@ -1,104 +1,58 @@
-version: "3.9"
-
-# ─── Job-Ops Migration Stack ──────────────────────────────────────────────────
-# Services: mongo, web (SvelteKit), extractor (Python/FastAPI sidecar)
-#
-# Quick start:
-#   cp .env.example .env        # fill in secrets
-#   docker compose up -d
-#   docker compose logs -f web  # watch startup
-#
-# Health checks:
-#   curl http://localhost:3005/health  → { ok: true }
-
+# =============================================================================
+# Job Ops - Docker Compose Configuration
+# =============================================================================
 services:
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-jobops}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD is required}
-      MONGO_INITDB_DATABASE: jobops
-    volumes:
-      - mongo_data:/data/db
-    # Expose only in development — remove or firewall in production
-    ports:
-      - "${MONGO_PORT:-27017}:27017"
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-
-  web:
+  job-ops:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
-    restart: unless-stopped
-    depends_on:
-      mongo:
-        condition: service_healthy
-      extractor:
-        condition: service_healthy
+      dockerfile: Dockerfile
+      secrets:
+        - github_token
+    image: ghcr.io/dakheera47/job-ops:latest
+    container_name: job-ops
     ports:
-      - "${WEB_PORT:-3005}:3000"
+      - "3005:3001"
+    volumes:
+      - ./data:/app/data
+      - codex-home:/app/codex-home
     environment:
       NODE_ENV: production
-      PORT: 3000
-      DATABASE_URL: >-
-        mongodb://${MONGO_USER:-jobops}:${MONGO_PASSWORD}@mongo:27017/jobops?authSource=admin
-      # DigitalOcean Spaces (S3-compatible)
-      DO_SPACES_ENDPOINT: ${DO_SPACES_ENDPOINT}
-      DO_SPACES_KEY: ${DO_SPACES_KEY}
-      DO_SPACES_SECRET: ${DO_SPACES_SECRET}
-      DO_SPACES_BUCKET: ${DO_SPACES_BUCKET}
-      DO_SPACES_CDN_URL: ${DO_SPACES_CDN_URL:-}
-      # Extractor sidecar
-      EXTRACTOR_URL: http://extractor:8000
-      # LLM
-      LLM_API_KEY: ${LLM_API_KEY}
-      MODEL: ${MODEL:-google/gemini-flash-1.5}
-      # RxResume
-      RXRESUME_URL: ${RXRESUME_URL:-https://v4.rxresu.me}
-      RXRESUME_EMAIL: ${RXRESUME_EMAIL:-}
-      RXRESUME_PASSWORD: ${RXRESUME_PASSWORD:-}
-      # Auth (optional basic auth for write endpoints)
-      BASIC_AUTH_USER: ${BASIC_AUTH_USER:-}
-      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-}
-      # Gmail OAuth
-      GMAIL_OAUTH_CLIENT_ID: ${GMAIL_OAUTH_CLIENT_ID:-}
-      GMAIL_OAUTH_CLIENT_SECRET: ${GMAIL_OAUTH_CLIENT_SECRET:-}
-      GMAIL_OAUTH_REDIRECT_URI: ${GMAIL_OAUTH_REDIRECT_URI:-}
-      # Tracer links
-      JOBOPS_PUBLIC_BASE_URL: ${JOBOPS_PUBLIC_BASE_URL:-}
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-
-  extractor:
-    build:
-      context: services/extractor
-      dockerfile: Dockerfile
+      PORT: 3001
+      PYTHON_PATH: /usr/bin/python3
+      CODEX_HOME: /app/codex-home
+    env_file:
+      - path: ./.env
+        required: false
+    develop:
+      watch:
+        - path: ./orchestrator/package.json
+          action: rebuild
+        - path: ./orchestrator/src
+          target: /app/orchestrator/src
+          action: sync+restart
+        - path: ./visa-sponsor-providers
+          target: /app/visa-sponsor-providers
+          action: sync+restart
+        - path: ./career-boards/bamboohr/src
+          target: /app/career-boards/bamboohr/src
+          action: sync+restart
+        - path: ./career-boards/workday/src
+          target: /app/career-boards/workday/src
+          action: sync+restart
+        - path: ./extractors
+          target: /app/extractors
+          action: sync+restart
     restart: unless-stopped
-    environment:
-      HOST: 0.0.0.0
-      PORT: 8000
-      # JobSpy / extractor config
-      JOBSPY_IS_REMOTE: ${JOBSPY_IS_REMOTE:-0}
-      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
-      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
-      ADZUNA_MAX_JOBS_PER_TERM: ${ADZUNA_MAX_JOBS_PER_TERM:-25}
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 10s
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN
 
 volumes:
-  mongo_data:
-    name: ${MONGO_VOLUME_NAME:-jobops_mongo_data}
+  codex-home:

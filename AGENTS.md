@@ -2,24 +2,24 @@
 
 ## Project Structure & Module Organization
 
-This is an Nx/pnpm monorepo. The SvelteKit app is `apps/web`; its routes live in `apps/web/src/routes`, shared client modules in `apps/web/src/lib`, and server-only code in `apps/web/src/lib/server`. Prisma schema and database notes are in `apps/web/prisma`. Unit, integration, and E2E tests are under `apps/web/tests`. The Python extractor sidecar remains in `services/extractor` and is wired through Docker Compose.
+This is an Nx/pnpm monorepo. The primary application is orchestrator, which contains the original JobOps React/Vite UI in orchestrator/src/client and the Express/API server in orchestrator/src/server. Shared types and utilities live in shared/src. Job-board integrations live in career-boards/* and extractors/*. Documentation lives in docs-site. apps/web is a transitional SvelteKit/Prisma MongoDB prototype and is not the default UI.
 
 ## Build, Test, and Development Commands
 
-Use pnpm from the repository root. `pnpm dev` runs `nx dev web`. `pnpm build`, `pnpm check`, `pnpm test`, `pnpm test:coverage`, and `pnpm e2e` run the corresponding Nx targets for `web`. Use `pnpm affected:check`, `pnpm affected:test`, `pnpm affected:build`, and `pnpm affected:lint` before broad changes so Nx only executes projects affected by the diff. Database commands are `pnpm db:generate`, `pnpm db:push`, and `pnpm db:studio`.
+Use pnpm from the repository root. pnpm dev runs nx dev orchestrator; use pnpm dev:server or pnpm dev:client for one side only. pnpm build, pnpm check, and pnpm test run the orchestrator Nx targets. Use pnpm affected:check, pnpm affected:test, and pnpm affected:build to limit validation to changed projects.
 
 ## Coding Style & Naming Conventions
 
-Use TypeScript with strict settings and ES modules. Prefer `$lib` imports inside the SvelteKit app. Keep route files in SvelteKit form: `+page.svelte`, `+page.server.ts`, and `+server.ts`. Name Vitest files `.test.ts` and Playwright files `.spec.ts`. New apps belong in `apps/<name>`; shared packages belong in `libs/<name>` with their own `project.json`.
+Use TypeScript and ES modules. The original app uses React, Vite, Tailwind, Biome, and path aliases such as @client, @server, and job-ops-shared. Keep package-local code inside its workspace and add Nx project.json targets when a package needs explicit build, test, lint, or typecheck behavior.
 
 ## Testing Guidelines
 
-Vitest covers unit and integration tests in `apps/web/tests` and excludes `tests/e2e`. Coverage applies to `apps/web/src/lib/**` with thresholds of 80% lines/functions/statements and 75% branches. Playwright tests live in `apps/web/tests/e2e` and run through `pnpm e2e` after the build target.
+Orchestrator tests use Vitest and live beside source as .test.ts or .test.tsx. Shared and extractor packages expose check:types; some extractors also expose test:run. Run pnpm nx show projects to confirm Nx sees a new workspace package.
 
 ## Commit & Pull Request Guidelines
 
-Use concise, imperative commit messages such as `Add web Nx targets`. Pull requests should describe the changed project, list verification commands, call out Prisma schema changes, and include screenshots for UI changes. Prefer Nx affected commands in PR validation notes.
+Use concise, imperative commit messages. PRs should identify affected projects, list verification commands, and include screenshots for UI changes. Preserve the upstream orchestrator UI unless a UI change is intentional.
 
 ## Security & Configuration Tips
 
-Copy `.env.example` to `.env` for local setup and never commit secrets. This project uses Prisma with MongoDB, so use `pnpm db:push`, not migrations. When changing `apps/web/prisma/schema.prisma`, update `apps/web/prisma/SCHEMA_CHANGELOG.md` in the same change.
+Copy .env.example to .env; never commit secrets. Docker Compose is still the self-hosted quick start and serves job-ops on port 3005. App data persists in ./data; Codex auth persists in the codex-home Docker volume.
