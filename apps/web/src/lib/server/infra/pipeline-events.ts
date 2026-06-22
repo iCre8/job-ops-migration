@@ -38,10 +38,35 @@ export function getPipelineEvents(): EventEmitter {
 /** Reset singleton — for use in tests only. */
 export function resetPipelineEvents(): void {
   _instance = null;
+  _replayBuffer.clear();
+}
+
+// ── Replay buffer ─────────────────────────────────────────────────────────────
+// Stores the last REPLAY_MAX events per runId so new SSE connections can
+// receive recent history rather than starting from a blank slate.
+
+const REPLAY_MAX = 50;
+const _replayBuffer = new Map<string, PipelineEvent[]>();
+
+function bufferEvent(data: PipelineEvent): void {
+  const events = _replayBuffer.get(data.runId) ?? [];
+  events.push(data);
+  if (events.length > REPLAY_MAX) events.shift();
+  _replayBuffer.set(data.runId, events);
+  // Clear buffer after a terminal event — run is done, no need to keep history
+  if (data.type === "complete" || data.type === "error") {
+    setTimeout(() => _replayBuffer.delete(data.runId), 30_000);
+  }
+}
+
+/** Returns buffered events for a run, oldest-first. */
+export function getReplayEvents(runId: string): PipelineEvent[] {
+  return _replayBuffer.get(runId) ?? [];
 }
 
 // ── Convenience emitter ───────────────────────────────────────────────────────
 
 export function emitPipelineEvent(data: PipelineEvent): void {
+  bufferEvent(data);
   getPipelineEvents().emit("event", data);
 }

@@ -67,9 +67,30 @@ services:
         required: false
     restart: unless-stopped
 
+  mongo:
+    image: mongo:7
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    # Standalone with auth. Auth + replica set requires a keyFile; standalone does not.
+    # The driver sends SCRAM credentials from the URL, so auth must be enabled.
+    # For local dev (Prisma transactions), use apps/web/docker-compose.yml which has --replSet.
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-jobops}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-jobops}
+    command: mongod --auth --bind_ip_all
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
 secrets:
   github_token:
     environment: GITHUB_TOKEN
 
 volumes:
   codex-home:
+  mongo-data:

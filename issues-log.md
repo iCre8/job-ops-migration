@@ -13,6 +13,11 @@
 |---|---|---|---|---|---|---|
 | ISSUE-001 | P1-Critical | Phase 1 — Data Model | Prisma v7 has no MongoDB adapter; `url` removed from schema | CLOSED | 2026-03-31 | 2026-03-31 |
 | ISSUE-002 | P2-Major | Phase 1 — Data Model | `deleteMany()` requires MongoDB replica set; standalone memory server rejected | CLOSED | 2026-03-31 | 2026-03-31 |
+| ISSUE-003 | P2-Major | Phase A — Auth | `jobs.apply` is a reserved tRPC router word; throws at startup | CLOSED | 2026-06-21 | 2026-06-21 |
+| ISSUE-004 | P2-Major | Phase A — Auth | `AuthSession.@@index([jti])` conflicts with `@unique` on same field | CLOSED | 2026-06-21 | 2026-06-21 |
+| ISSUE-005 | P3-Minor | Phase A — Auth | New route directories missing generated `$types.js`; need `svelte-kit sync` | CLOSED | 2026-06-21 | 2026-06-21 |
+| ISSUE-006 | P3-Minor | Phase A — Auth | `Prisma.InputJsonObject` cast required for `Json`-typed watchlist config field | CLOSED | 2026-06-21 | 2026-06-21 |
+| ISSUE-007 | P2-Major | Phase A — Auth | apps/web admin seed missing and project-level Prisma env not configured | CLOSED | 2026-06-21 | 2026-06-21 |
 
 ---
 
@@ -156,3 +161,127 @@ mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
 ISSUE-001 (same test run)
 
 ---
+
+### ISSUE-003 — `jobs.apply` is a reserved tRPC router word
+
+| Field | Value |
+|---|---|
+| **ID** | ISSUE-003 |
+| **Severity** | P2-Major |
+| **Phase** | Phase A — Auth / Phase B — Job Detail |
+| **Status** | CLOSED |
+| **Opened** | 2026-06-21 |
+| **Closed** | 2026-06-21 |
+
+#### Symptom
+
+Server threw at startup: `Reserved words used in router({}) call: apply`. The `jobs.apply` mutation caused this error and prevented the dev server from starting.
+
+#### Root Cause
+
+tRPC v11 internally calls `Object.assign` / property assignment on the router object. `apply` is a reserved property on JavaScript `Function.prototype` and tRPC explicitly guards against it.
+
+#### Resolution
+
+Renamed `apply` → `markApplied` in `apps/web/src/lib/server/trpc/routers/jobs.ts` and updated all client call sites in `src/routes/(app)/jobs/[id]/+page.svelte`.
+
+#### Prevention
+
+Avoid `apply`, `call`, `bind`, `constructor`, `prototype` as tRPC procedure names.
+
+---
+
+### ISSUE-004 — `AuthSession.@@index([jti])` conflicts with `@unique`
+
+| Field | Value |
+|---|---|
+| **ID** | ISSUE-004 |
+| **Severity** | P2-Major |
+| **Phase** | Phase A — Auth |
+| **Status** | CLOSED |
+| **Opened** | 2026-06-21 |
+| **Closed** | 2026-06-21 |
+
+#### Symptom
+
+`pnpm db:generate` failed: Prisma rejected the schema because `AuthSession.jti` had both `@unique` (field-level) and `@@index([jti])` (model-level), which creates a redundant/conflicting index definition.
+
+#### Resolution
+
+Removed `@@index([jti])` from `AuthSession`. The `@unique` directive already creates a unique index; the explicit `@@index` is redundant and rejected by Prisma's validator.
+
+---
+
+### ISSUE-005 — New route directories missing generated `$types.js`
+
+| Field | Value |
+|---|---|
+| **ID** | ISSUE-005 |
+| **Severity** | P3-Minor |
+| **Phase** | Phase A — Auth |
+| **Status** | CLOSED |
+| **Opened** | 2026-06-21 |
+| **Closed** | 2026-06-21 |
+
+#### Symptom
+
+IDE and `svelte-check` reported `Cannot find module './$types.js'` in newly created route files (`sign-in/`, `onboarding/`).
+
+#### Resolution
+
+Ran `npx svelte-kit sync` to regenerate `.svelte-kit/` type stubs. Must be re-run whenever new route directories are added.
+
+---
+
+### ISSUE-006 — `Prisma.InputJsonObject` required for `Json`-typed fields
+
+| Field | Value |
+|---|---|
+| **ID** | ISSUE-006 |
+| **Severity** | P3-Minor |
+| **Phase** | Phase F — Watchlist |
+| **Status** | CLOSED |
+| **Opened** | 2026-06-21 |
+| **Closed** | 2026-06-21 |
+
+#### Symptom
+
+TypeScript error: `Type 'Record<string, unknown>' is not assignable to type 'InputJsonValue'` when passing a `z.record(z.string(), z.unknown())` value into a Prisma `Json` field.
+
+#### Resolution
+
+Import `Prisma` namespace from `@prisma/client` and cast: `const config = (input.config ?? null) as Prisma.InputJsonObject | null`. This satisfies Prisma's input type without losing the runtime value.
+
+---
+
+---
+
+### ISSUE-007 — apps/web admin seed missing, Prisma Studio port drift, and Studio embedded client env loading
+
+| Field | Value |
+|---|---|
+| **ID** | ISSUE-007 |
+| **Severity** | P2-Major |
+| **Phase** | Phase A — Auth |
+| **Status** | CLOSED |
+| **Opened** | 2026-06-21 |
+| **Closed** | 2026-06-21 |
+| **Opened by** | Codex (reported during local Prisma troubleshooting) |
+
+#### Symptom
+
+Local `apps/web` database setup did not have a repeatable command for creating the first admin user. `pnpm db:studio` could also appear inconsistent when Prisma Studio auto-selected a fallback port instead of the expected URL.
+
+#### Root Cause
+
+The app had runtime onboarding and admin-user creation routes, but no package-level seed script for operators or CI. Documentation still referenced obsolete first-run variables and PostgreSQL setup notes. Prisma Studio was not pinned to a deterministic port.
+
+#### Resolution
+
+Standardized on project-level `apps/web/.env` so Prisma Studio and seed commands resolve `DATABASE_URL` from the Nx project cwd without custom wrapper code.
+
+Added `apps/web/prisma/seed.ts`, `pnpm db:seed`, and the Nx `db-seed` target. The seed uses `SEED_ADMIN_USERNAME`, required `SEED_ADMIN_PASSWORD`, and optional `SEED_ADMIN_DISPLAY_NAME`; it upserts the user, hashes the password with scrypt, grants system-admin access, and re-enables the account. Updated `db:studio` to call Prisma directly with `./prisma/schema.prisma --port 5555`; it expects `DATABASE_URL` in `apps/web/.env` or the shell.
+
+#### Prevention
+
+Keep app-local Prisma commands in `apps/web/package.json` and `apps/web/project.json` synchronized. When troubleshooting Studio, confirm `apps/web/.env` exists and contains `DATABASE_URL`, then check whether port `5555` is already in use.

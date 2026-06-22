@@ -9,14 +9,15 @@
     "start": "node build",
     "db:push": "prisma db push --schema ./prisma/schema.prisma",
     "db:generate": "prisma generate --schema ./prisma/schema.prisma",
-    "db:studio": "prisma studio --schema ./prisma/schema.prisma",
+    "db:studio": "prisma studio --schema ./prisma/schema.prisma --port 5555",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:types": "tsc --noEmit"
+    "check:types": "tsc --noEmit",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",

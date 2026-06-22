@@ -52,6 +52,8 @@ export interface JobSpyScrapeOptions {
   resultsWanted: number;
   /** Job boards to query. Defaults to linkedin + indeed + glassdoor. */
   sites?: string[];
+  /** Optional abort signal — aborts the HTTP request when signalled. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -76,11 +78,15 @@ export async function scrapeJobSpy(options: JobSpyScrapeOptions): Promise<RawJob
     sites: options.sites ?? ["linkedin", "indeed", "glassdoor"],
   };
 
+  const signal = options.signal
+    ? AbortSignal.any([options.signal, AbortSignal.timeout(120_000)])
+    : AbortSignal.timeout(120_000);
+
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120_000),
+    signal,
   });
 
   if (!res.ok) {

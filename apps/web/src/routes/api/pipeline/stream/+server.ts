@@ -15,7 +15,7 @@
  *   - A "complete" or "error" event is received for the subscribed runId.
  */
 
-import { getPipelineEvents, type PipelineEvent } from "$lib/server/infra/pipeline-events.js";
+import { getPipelineEvents, getReplayEvents, type PipelineEvent } from "$lib/server/infra/pipeline-events.js";
 import type { RequestHandler } from "./$types";
 
 const enc = new TextEncoder();
@@ -55,6 +55,13 @@ export const GET: RequestHandler = ({ url, request }) => {
       };
 
       emitter.on("event", listener);
+
+      // Replay buffered events so reconnecting clients catch up
+      if (runId !== null) {
+        for (const past of getReplayEvents(runId)) {
+          try { controller.enqueue(sseChunk(past)); } catch { /* already closed */ }
+        }
+      }
 
       // Clean up when the client disconnects
       request.signal.addEventListener("abort", () => {

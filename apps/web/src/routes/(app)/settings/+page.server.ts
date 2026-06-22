@@ -4,9 +4,12 @@ import type { PageServerLoad } from "./$types";
 export const load: PageServerLoad = async (event) => {
   try {
     const trpc = await trpcServer(event);
-    const settings = await trpc.settings.get();
-    return { settings };
+    const [settings, backups] = await Promise.all([
+      trpc.settings.get(),
+      trpc.settings.backups.list().catch(() => []),
+    ]);
+    return { settings, backups };
   } catch {
-    return { settings: {} as Record<string, unknown> };
+    return { settings: {} as Record<string, unknown>, backups: [] };
   }
 };

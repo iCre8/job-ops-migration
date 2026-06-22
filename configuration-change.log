@@ -1,5 +1,26 @@
 # Configuration Change Log
 
+## [2026-06-21] apps/web Project-Level Env Convention
+
+### Nx Project Environment Resolution
+- **apps/web/.env.example**: Added a project-local environment template so `pnpm --dir apps/web ...` and `pnpm nx ... web` targets resolve the same variables from the app directory.
+- **apps/web/prisma/seed.ts**: Uses standard `dotenv/config` only; no custom root-env fallback is required when commands run with `cwd=apps/web`.
+- **Problem**: Loading root `.env` from app code made the project depend on repository-global state and added avoidable wrapper code.
+- **Resolution**: Keep web-specific `DATABASE_URL` and seed variables in `apps/web/.env`; Nx targets already run with `cwd={projectRoot}`.
+
+## [2026-06-21] apps/web Prisma Seed and Studio Commands
+
+### Package and Nx Targets
+- **apps/web/package.json**: Added `db:seed` and pinned `db:studio` to port `5555` with the app-local Prisma schema path.
+- **apps/web/project.json**: Added Nx `db-seed` and updated `db-studio` so affected/project-scoped workflows use the same commands as package scripts.
+
+### Environment and Documentation
+- **apps/web/.env.example**: Added the project-level environment template for `DATABASE_URL` and `SEED_ADMIN_*` variables used by the Prisma 6 MongoDB app.
+- **README.md**: Replaced stale PostgreSQL/BASIC_AUTH setup guidance with MongoDB `db:push`, `db:generate`, `db:seed`, and deterministic Prisma Studio instructions.
+- **Problem**: `pnpm db:studio` could appear to start on an unexpected URL when Prisma auto-selected another port, and seed docs referenced obsolete first-user variables.
+- **Resolution**: Studio now runs directly through Prisma from the `apps/web` project cwd, defaults to `http://localhost:5555`, and reads `DATABASE_URL` from `apps/web/.env`. Admin seeding now uses explicit `SEED_ADMIN_*` variables.
+
+
 ## [2026-06-21] Build, Dependencies, and Watch Configuration Updates
 
 ### Drizzle Configuration

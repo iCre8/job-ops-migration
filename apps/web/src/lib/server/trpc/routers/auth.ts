@@ -112,6 +112,54 @@ export const authRouter = router({
     return { id: user.id, username: user.username, displayName: user.displayName, isSystemAdmin: user.isSystemAdmin };
   }),
 
+  listUsers: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.user.isSystemAdmin) throw new TRPCError({ code: "FORBIDDEN" });
+    return getPrisma().user.findMany({
+      select: { id: true, username: true, displayName: true, isSystemAdmin: true, isDisabled: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    });
+  }),
+
+  createUser: protectedProcedure
+    .input(
+      z.object({
+        username: z.string().min(1).max(50).trim(),
+        password: z.string().min(8).max(500),
+        displayName: z.string().trim().max(120).optional(),
+        isSystemAdmin: z.boolean().default(false),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user.isSystemAdmin) throw new TRPCError({ code: "FORBIDDEN" });
+      const exists = await getPrisma().user.findUnique({ where: { username: input.username.toLowerCase() } });
+      if (exists) throw new TRPCError({ code: "CONFLICT", message: "Username already taken" });
+      const { passwordHash, passwordSalt } = await hashPassword(input.password);
+      return getPrisma().user.create({
+        data: {
+          username: input.username.toLowerCase(),
+          displayName: input.displayName ?? input.username,
+          passwordHash,
+          passwordSalt,
+          isSystemAdmin: input.isSystemAdmin,
+        },
+        select: { id: true, username: true, displayName: true, isSystemAdmin: true },
+      });
+    }),
+
+  toggleUserDisabled: protectedProcedure
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user.isSystemAdmin) throw new TRPCError({ code: "FORBIDDEN" });
+      if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot disable yourself" });
+      const user = await getPrisma().user.findUnique({ where: { id: input.userId } });
+      if (!user) throw new TRPCError({ code: "NOT_FOUND" });
+      return getPrisma().user.update({
+        where: { id: input.userId },
+        data: { isDisabled: !user.isDisabled },
+        select: { id: true, username: true, isDisabled: true },
+      });
+    }),
+
   changePassword: protectedProcedure
     .input(
       z.object({

@@ -7,12 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Job-Ops Migration is migrating a self-hosted job application orchestrator from React/Express to SvelteKit. The app scrapes job boards, scores jobs with AI, generates tailored PDFs via RxResume, and tracks application emails via Gmail OAuth.
 
 **Monorepo layout:**
-- `apps/web/` — **Migration target (SvelteKit).** SvelteKit 2 + Svelte 5, tRPC v11, MongoDB 7 + Prisma v6. Phases 1–11 complete; Phase 12 (CI Pipeline) is the final remaining gate.
-- `orchestrator/` — **Source/legacy app (React).** React 18 + Vite + Express 4 + PostgreSQL/Drizzle. Being replaced by `apps/web/`.
+- `apps/web/` — **Active app (SvelteKit).** SvelteKit 2 + Svelte 5, tRPC v11, MongoDB 7 + Prisma v6. Full feature parity complete as of 2026-06-21.
+- `orchestrator/` — **Legacy app (React).** React 18 + Vite + Express 4 + PostgreSQL/Drizzle. Retained for reference; not actively developed.
 - `shared/` — Types and utilities shared across packages.
 - `career-boards/*`, `extractors/*` — Job board and extraction integrations.
 
-**Active development happens in `apps/web/`.** The `orchestrator/` is the thing being migrated away from.
+**All active development happens in `apps/web/`.**
 
 ## Development Commands
 
@@ -22,8 +22,8 @@ All commands run from `apps/web/` unless noted.
 # SvelteKit dev server (:5173) — MongoDB must be running first
 pnpm dev
 
-# MongoDB (start before pnpm dev)
-docker compose up -d mongo
+# MongoDB (start before pnpm dev) — compose file is in apps/web/
+docker compose up -d          # starts mongo + runs mongo-init (replica set init)
 
 # Database (MongoDB + Prisma v6 — no prisma migrate, schema push only)
 pnpm db:push      # Apply schema changes to MongoDB
@@ -55,15 +55,15 @@ pnpm test:run
 
 ## Local Development Setup
 
-MongoDB must be running before `pnpm dev`:
+MongoDB must be running before `pnpm dev`. The `apps/web/docker-compose.yml` starts a no-auth single-node replica set (required for Prisma transactions):
 
 ```bash
-docker compose up -d mongo    # Start MongoDB only (no need to build web image)
+cd apps/web && docker compose up -d
 ```
 
-Copy `.env.example` → `.env` in the repo root and set `DATABASE_URL`:
+The `mongo-init` service auto-runs `rs.initiate()` on first start. Set `DATABASE_URL` in the repo root `.env`:
 ```
-DATABASE_URL=mongodb://jobops:<password>@localhost:27017/jobops?authSource=admin
+DATABASE_URL=mongodb://localhost:27017/jobops?directConnection=true
 ```
 
 All other services (DO Spaces, RxResume, Gmail OAuth, Python extractor sidecar) are optional for basic UI work but required for full pipeline runs.
@@ -76,11 +76,16 @@ Integration tests use `MongoMemoryReplSet` (not `MongoMemoryServer`) — Prisma'
 
 All API logic lives here. Each router groups `query` and `mutation` procedures:
 
-- `pipeline.ts` — `trigger()` mutation creates a `PipelineRun`; `list()` and `byId()` queries. No try/catch in `trigger()` — Prisma errors bubble as HTTP 500.
-- `jobs.ts` — CRUD + `generatePdf()` mutation (RxResume → DO Spaces upload).
-- `tracking.ts` — Gmail sync, OAuth token refresh, integration management.
-- `settings.ts` — App configuration persisted in MongoDB.
-- `_app.ts` — Root router that combines all sub-routers.
+- `auth.ts` — `bootstrapStatus`, `setup`, `login`, `logout`, `me`, `listUsers`, `createUser`, `toggleUserDisabled`
+- `jobs.ts` — CRUD, `markApplied` (not `apply` — reserved word), `verify`, `delete`, `moveStage`, notes CRUD, documents CRUD, `generatePdf`
+- `pipeline.ts` — `trigger`, `cancel`, `list`, `byId`; nested `searchPresets` router (list/create/update/delete/markUsed)
+- `chat.ts` — `threads.list/create/reset/delete`, `sendMessage` (creates `ChatRun`, returns `runId` for SSE)
+- `tracking.ts` — Gmail sync, OAuth token refresh, integration management
+- `watchlist.ts` — `sources.list/upsert/toggle/delete`; `Prisma.InputJsonObject` cast for `config` field
+- `tracer.ts` — `analytics`, `jobClicks`
+- `designResume.ts` — `list`, `get`, `update`, `exportPdfUrl` (proxies RxResume API)
+- `settings.ts` — App configuration persisted in MongoDB
+- `_app.ts` — Root router combining all sub-routers
 
 tRPC error codes map to HTTP status: `INTERNAL_SERVER_ERROR` → 500, `NOT_FOUND` → 404, `UNAUTHORIZED` → 401.
 

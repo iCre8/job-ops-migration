@@ -7,10 +7,13 @@ export const load: PageServerLoad = async (event) => {
 
   try {
     const trpc = await trpcServer(event);
-    const { jobs, total, pageSize } = await trpc.jobs.list({ status, page, pageSize: 50 });
-    return { jobs, total, page, pageSize, status };
+    const [{ jobs, total, pageSize }, activeRun, recentRuns] = await Promise.all([
+      trpc.jobs.list({ status, page, pageSize: 50 }),
+      trpc.pipeline.currentRun().catch(() => null),
+      trpc.pipeline.list({ limit: 5 }).catch(() => []),
+    ]);
+    return { jobs, total, page, pageSize, status, activeRun, recentRuns };
   } catch {
-    // Database unavailable — render empty state rather than crashing.
-    return { jobs: [], total: 0, page: 1, pageSize: 50, status };
+    return { jobs: [], total: 0, page: 1, pageSize: 50, status, activeRun: null };
   }
 };

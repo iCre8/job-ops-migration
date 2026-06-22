@@ -1,0 +1,32 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: job-ops-mongo
+    ports:
+      - "27017:27017"
+    # No auth for local dev — Prisma only needs a replica set for transactions
+    command: mongod --replSet rs0 --bind_ip_all
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: mongosh --eval "db.adminCommand('ping')" --quiet
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # One-shot container that initialises the replica set after mongo is healthy.
+  # Restarts do nothing — rs.status() returns OK and the catch branch is skipped.
+  mongo-init:
+    image: mongo:7
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      mongosh --host mongo:27017 --quiet --eval
+      "try { rs.status(); print('rs0 already initialised') }
+       catch(e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }); print('rs0 initialised') }"
+
+volumes:
+  mongo-data:

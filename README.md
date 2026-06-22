@@ -1,15 +1,15 @@
 # Job Ops
 
-Nx/pnpm monorepo for the original JobOps application. The primary app remains the upstream React/Vite orchestrator UI under orchestrator; apps/web is transitional and is no longer the default app target.
+Nx/pnpm monorepo. The SvelteKit app at `apps/web` is the current production target — it has full feature parity with the legacy React/Express orchestrator and replaces it. The orchestrator is retained for reference only.
 
 ## Workspace Layout
 
-- orchestrator - original JobOps React UI and Express/API server.
-- shared - shared TypeScript types and utilities.
-- career-boards/* and extractors/* - job board integrations.
-- docs-site - Docusaurus documentation.
-- apps/hermes-agent - background worker daemon verifying job authenticity.
-- apps/web - transitional SvelteKit/Prisma MongoDB prototype, retained but not the default UI.
+- **apps/web** — SvelteKit 2 + Svelte 5 + tRPC v11 + MongoDB (Prisma v6) — **primary app**
+- orchestrator — legacy React/Express app (reference only; not the active target)
+- shared — shared TypeScript types and utilities
+- career-boards/*, extractors/* — job board integrations
+- docs-site — Docusaurus documentation
+- apps/hermes-agent — background worker daemon for job authenticity verification
 
 ## Package Manager
 
@@ -34,38 +34,42 @@ pnpm dep-graph       # Nx project graph
 
 ## Database Setup & Migration
 
-The orchestrator now uses **PostgreSQL** as its primary datastore (via Drizzle ORM) in development and production, replacing the previous SQLite implementation.
+`apps/web` uses MongoDB with Prisma 6. MongoDB schema changes are applied with `db push`; Prisma migrate is not supported for MongoDB.
 
-### Local Development
-To run the orchestrator locally, you must provide a PostgreSQL instance and configure it in your `.env` file:
 ```bash
+cd apps/web
 cp .env.example .env
-```
-Ensure your `.env` specifies the `DATABASE_URL`:
-```env
-DATABASE_URL=postgres://username:password@localhost:5432/jobops
+pnpm db:push
+pnpm db:generate
 ```
 
-Once the database is running, execute Drizzle migrations:
-```bash
-pnpm --filter job-ops-orchestrator db:migrate
+Set `DATABASE_URL` in `apps/web/.env` or the shell before running Prisma commands. In this Nx monorepo, app-specific env belongs beside the project that consumes it:
+
+```env
+DATABASE_URL=mongodb://jobops:password@localhost:27017/jobops?authSource=admin&directConnection=true
 ```
 
 ### First-Run Authentication
 
-The app uses **JWT authentication** — there is no HTTP Basic Auth. On first run, if no users exist, the sign-in page redirects to an onboarding wizard where you create the initial admin account.
+The SvelteKit app uses JWT cookie auth. If no users exist, the onboarding UI can create the first system admin. For repeatable local setup or CI smoke data, seed the admin user explicitly:
 
-Alternatively, set `BASIC_AUTH_USER` and `BASIC_AUTH_PASSWORD` in `.env` before running `db:migrate` to have the migration automatically seed the first admin user. After the first user exists, these variables are ignored entirely.
-
-```env
-BASIC_AUTH_USER=admin
-BASIC_AUTH_PASSWORD=your-secure-password
+```bash
+cd apps/web
+SEED_ADMIN_USERNAME=admin SEED_ADMIN_PASSWORD=change-this-password pnpm db:seed
 ```
 
-### Automated Tests
-For integration testing, the application utilizes `@electric-sql/pglite` (an in-memory WASM PostgreSQL database engine). This provides complete dialect consistency with production PostgreSQL, allowing tests to run instantly without requiring a live PostgreSQL instance.
+`pnpm db:seed` is idempotent: it creates the admin user when absent and updates/promotes the same username when present. `SEED_ADMIN_PASSWORD` is required so the seed never creates an unknown credential.
 
----
+### Prisma Studio
+
+Run Studio from the app package so it uses the app-local schema path:
+
+```bash
+cd apps/web
+pnpm db:studio
+```
+
+Studio runs at `http://localhost:5555` and reads `DATABASE_URL` from `apps/web/.env` because the Nx/package target runs with `cwd=apps/web`. If the port is occupied, stop the existing Studio process or run Prisma manually with another port.
 
 ## File Watcher Limit (ENOSPC) Troubleshooting
 

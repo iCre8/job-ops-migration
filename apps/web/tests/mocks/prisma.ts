@@ -24,7 +24,9 @@ export const mockPrisma = {
   },
   pipelineRun: {
     findMany: vi.fn(),
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
   },
 } as unknown as PrismaClient;

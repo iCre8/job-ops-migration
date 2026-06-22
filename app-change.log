@@ -1,5 +1,13 @@
 # Application Change Log
 
+## [2026-06-21] apps/web Admin User Seeding
+
+### Prisma Seed Flow
+- **apps/web/prisma/seed.ts**: Added an idempotent Prisma 6 seed script for the MongoDB `User` model. It creates or updates the configured admin username, hashes the supplied password with the same scrypt parameters used by runtime auth, promotes the user to system admin, and re-enables disabled accounts.
+- **Problem**: Local database setup had no repeatable CLI path for creating the first admin user; operators had to depend on onboarding UI state or stale `BASIC_AUTH_*` guidance.
+- **Resolution**: Use `SEED_ADMIN_USERNAME`, required `SEED_ADMIN_PASSWORD`, and optional `SEED_ADMIN_DISPLAY_NAME` with `pnpm db:seed` from `apps/web`.
+
+
 ## [2026-06-21] SQLite to PostgreSQL Application Layer Enhancements
 
 ### Repository & Database Layer Compatibility
@@ -32,3 +40,37 @@
 - **Verification Card Component**: Added a premium `VerificationCard` component to render the audit details. The card shows verdict badges (Likely Real, Needs Verification, Possible Ghost, Likely Scam, Insufficient Evidence), confidence percentages, structured evidence list, red flags, recommended next steps, and a one-click copyable Recruiter Outreach Message.
 - **Job Page Wiring**: Integrated `VerificationCard` into the primary job details page overview panel, enabling real-time status polling and manual re-verification triggers.
 
+
+## 2026-06-21 — apps/web Full Feature Parity
+
+### Authentication System
+- HTTP-only JWT cookie auth (`jobops_token`) via `jose` library
+- `User` and `AuthSession` MongoDB models; password hashing with `crypto.scrypt`
+- `hooks.server.ts` validates cookie on every request; populates `event.locals.user`
+- Sign-in page, first-run onboarding wizard, `protectedProcedure` middleware
+
+### Extended Job Detail
+- Notes: create/edit/delete (embedded `JobNote[]` on Job)
+- Documents: metadata registry + DO Spaces storage + signed download URLs
+- Stage timeline: `moveStage` appends to embedded `stageEvents[]`
+- Actions: `markApplied`, `verify`, hard `delete` (removes PDF from storage)
+
+### Ghostwriter AI Chat
+- `ChatThread` + `ChatRun` tRPC router; per-job chat history
+- LLM service with OpenRouter/OpenAI-compatible streaming
+- SSE streaming endpoint at `/api/ghostwriter/stream`
+
+### Additional Pages
+- `/applications` — Kanban board by applicationStage (5 columns)
+- `/watchlist` — WatchlistSource management
+- `/tracer-links` — TracerLink click analytics + `/api/t/[token]` redirect endpoint
+- `/visa-sponsors` — Extractor sidecar search
+- `/design-resume` — RxResume integration (list, update, export PDF)
+- `/settings/admin` — Admin-only user management (list, create, disable)
+
+### Pipeline Enhancements
+- `SearchPreset` model; saved search presets CRUD
+- `pipeline.cancel` mutation
+
+### CI
+- `.github/workflows/web-ci.yml`: lint + typecheck + Vitest + Playwright (MongoDB 7 service)
