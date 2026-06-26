@@ -8,19 +8,17 @@
   let results = $state(data.results);
   $effect(() => { sources = data.sources; results = data.results; });
 
-  let activeTab = $state<"sources" | "results">("results");
-
-  // Sources tab state
-  let newSourceId = $state("");
-  let newLabel = $state("");
-  let saving = $state(false);
-  let sourceError = $state<string | null>(null);
-
-  // Results tab state
+  // Filter and loading states
   let decisionFilter = $state<"unseen" | "imported" | "ignored" | "all">("unseen");
   let sourceFilter = $state("");
   let loadingResults = $state(false);
   let decidingId = $state<string | null>(null);
+
+  // New source states
+  let newSourceId = $state("");
+  let newLabel = $state("");
+  let saving = $state(false);
+  let sourceError = $state<string | null>(null);
 
   async function toggle(sourceId: string) {
     await trpc.watchlist.sources.toggle.mutate({ sourceId });
@@ -84,164 +82,621 @@
     if (!d) return "—";
     return new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   }
+
+  function getSourceTypeLabel(sourceId: string): string {
+    const lower = sourceId.toLowerCase();
+    if (lower.includes("greenhouse")) return "Greenhouse";
+    if (lower.includes("workday")) return "Workday";
+    if (lower.includes("bamboohr")) return "BambooHR";
+    return "Custom";
+  }
 </script>
 
 <svelte:head>
   <title>Watchlist — Job-Ops</title>
 </svelte:head>
 
-<div style="padding:2rem;max-width:800px;margin:0 auto">
-  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1.5rem">
-    <h1 style="font-size:1.3rem;font-weight:700;margin:0">Watchlist</h1>
-  </div>
-
-  <!-- Tabs -->
-  <div style="display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:1.5rem">
-    {#each [["results","Results"], ["sources","Sources"]] as [tab, label]}
-      <button
-        onclick={() => { activeTab = tab as "results" | "sources"; }}
-        style="padding:0.5rem 1.25rem;border:none;background:none;font-size:0.875rem;font-weight:{activeTab === tab ? 700 : 400};color:{activeTab === tab ? '#1d4ed8' : '#6b7280'};border-bottom:{activeTab === tab ? '2px solid #1d4ed8' : '2px solid transparent'};margin-bottom:-2px;cursor:pointer"
-      >{label}</button>
-    {/each}
-  </div>
-
-  <!-- Results tab -->
-  {#if activeTab === "results"}
-    <!-- Filters -->
-    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <select
-        bind:value={decisionFilter}
-        onchange={loadResults}
-        style="padding:0.4rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem"
-      >
-        <option value="unseen">Unseen</option>
-        <option value="imported">Imported</option>
-        <option value="ignored">Ignored</option>
-        <option value="all">All</option>
-      </select>
-
-      <select
-        bind:value={sourceFilter}
-        onchange={loadResults}
-        style="padding:0.4rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem"
-      >
-        <option value="">All sources</option>
-        {#each sources as src (src.id)}
-          <option value={src.sourceId}>{src.label}</option>
-        {/each}
-      </select>
-
-      <span style="font-size:0.8rem;color:#9ca3af">{results.length} job{results.length === 1 ? "" : "s"}</span>
+<div class="watchlist-container fade-in">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>Watchlist</h1>
+      <p class="subtitle">Monitor and import jobs from configured company career boards</p>
     </div>
+  </header>
 
-    {#if loadingResults}
-      <p style="color:#9ca3af;font-size:0.875rem">Loading…</p>
-    {:else if results.length === 0}
-      <div style="text-align:center;padding:3rem;color:#9ca3af">
-        <p style="margin:0;font-size:0.875rem">
-          {decisionFilter === "unseen" ? "No new watchlist jobs found. Run the pipeline to discover new listings." : "No jobs match this filter."}
-        </p>
+  <div class="watchlist-layout">
+    <!-- Main Content: Discovered Jobs List -->
+    <main class="results-section">
+      <div class="card card-hover filter-card">
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">Filter Decision</span>
+            <select
+              bind:value={decisionFilter}
+              onchange={loadResults}
+              class="select select-custom"
+            >
+              <option value="unseen">Unseen</option>
+              <option value="imported">Imported</option>
+              <option value="ignored">Ignored</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Filter Source</span>
+            <select
+              bind:value={sourceFilter}
+              onchange={loadResults}
+              class="select select-custom"
+            >
+              <option value="">All Sources</option>
+              {#each sources as src (src.id)}
+                <option value={src.sourceId}>{src.label}</option>
+              {/each}
+            </select>
+          </div>
+
+          <div class="job-count-badge">
+            {results.length} Opportunity{results.length === 1 ? "" : "ies"}
+          </div>
+        </div>
       </div>
-    {:else}
-      <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
-        {#each results as job (job.id)}
-          <div style="display:flex;align-items:flex-start;gap:1rem;padding:0.85rem 1rem;border-bottom:1px solid #f3f4f6">
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-                <p style="font-weight:600;font-size:0.875rem;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px">
-                  {job.title ?? "(untitled)"}
-                </p>
-                <span style="font-size:0.7rem;background:#f3f4f6;color:#6b7280;padding:0.1rem 0.4rem;border-radius:4px;white-space:nowrap">
-                  {sourceLabel(job.sourceId)}
-                </span>
+
+      {#if loadingResults}
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading opportunities...</p>
+        </div>
+      {:else if results.length === 0}
+        <div class="empty-state card">
+          <div class="empty-icon">📂</div>
+          <h3>No opportunities found</h3>
+          <p>
+            {decisionFilter === "unseen" 
+              ? "No new watchlist jobs match. Run the crawler pipeline to discover new postings." 
+              : "No jobs match the selected filter criteria."}
+          </p>
+        </div>
+      {:else}
+        <div class="jobs-list">
+          {#each results as job (job.id)}
+            <div class="job-item card card-hover">
+              <div class="job-info">
+                <div class="job-header">
+                  <h3>{job.title ?? "(Untitled Role)"}</h3>
+                  <div class="badge-row">
+                    <span class="badge badge-discovered">
+                      {sourceLabel(job.sourceId)}
+                    </span>
+                    <span class="badge-type">
+                      {getSourceTypeLabel(job.sourceId)}
+                    </span>
+                  </div>
+                </div>
+                <div class="job-meta">
+                  <span class="employer">{job.employer ?? "Unknown Company"}</span>
+                  {#if job.location}
+                    <span class="separator">•</span>
+                    <span class="location">{job.location}</span>
+                  {/if}
+                  {#if job.postedAt}
+                    <span class="separator">•</span>
+                    <span class="date">{formatDate(job.postedAt)}</span>
+                  {/if}
+                </div>
               </div>
-              <p style="font-size:0.8rem;color:#6b7280;margin:0.15rem 0 0">
-                {[job.employer, job.location].filter(Boolean).join(" · ")}
-                {#if job.postedAt}
-                  <span style="color:#9ca3af"> · {formatDate(job.postedAt)}</span>
+
+              <div class="job-actions">
+                {#if job.decision}
+                  <span class="badge {job.decision === 'imported' ? 'badge-applied' : 'badge-skipped'}">
+                    {job.decision}
+                  </span>
+                {:else}
+                  {#if job.url}
+                    <a href={job.url} target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                      View Board
+                    </a>
+                  {/if}
+                  <button
+                    onclick={() => decide(job.id, "imported")}
+                    disabled={decidingId === job.id}
+                    class="btn btn-primary btn-sm"
+                  >
+                    Import
+                  </button>
+                  <button
+                    onclick={() => decide(job.id, "ignored")}
+                    disabled={decidingId === job.id}
+                    class="btn btn-secondary btn-sm ignore-btn"
+                  >
+                    Ignore
+                  </button>
                 {/if}
-              </p>
+              </div>
             </div>
+          {/each}
+        </div>
+      {/if}
+    </main>
 
-            <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
-              {#if job.decision}
-                <span style="font-size:0.75rem;padding:0.2rem 0.5rem;border-radius:4px;background:{job.decision === 'imported' ? '#dcfce7' : '#f3f4f6'};color:{job.decision === 'imported' ? '#15803d' : '#6b7280'}">
-                  {job.decision}
-                </span>
-              {:else}
-                {#if job.url}
-                  <a href={job.url} target="_blank" rel="noopener noreferrer"
-                    style="font-size:0.75rem;color:#1d4ed8;text-decoration:none">View</a>
-                {/if}
-                <button
-                  onclick={() => decide(job.id, "imported")}
-                  disabled={decidingId === job.id}
-                  style="padding:0.25rem 0.6rem;background:#1d4ed8;color:#fff;border:none;border-radius:5px;font-size:0.75rem;cursor:pointer;opacity:{decidingId === job.id ? 0.6 : 1}"
-                >Import</button>
-                <button
-                  onclick={() => decide(job.id, "ignored")}
-                  disabled={decidingId === job.id}
-                  style="padding:0.25rem 0.6rem;background:#f3f4f6;color:#6b7280;border:none;border-radius:5px;font-size:0.75rem;cursor:pointer"
-                >Ignore</button>
-              {/if}
-            </div>
+    <!-- Sidebar: Sources Management -->
+    <aside class="sources-sidebar">
+      <!-- Add Source Form -->
+      <div class="card add-source-card">
+        <h2>Add Career Board</h2>
+        <p class="description">Add a custom company board source to monitor</p>
+
+        {#if sourceError}
+          <div class="error-banner">{sourceError}</div>
+        {/if}
+
+        <div class="form-layout">
+          <div class="form-group">
+            <span class="form-label">Source ID</span>
+            <input
+              type="text"
+              bind:value={newSourceId}
+              placeholder="e.g. greenhouse:stripe"
+              class="input"
+            />
           </div>
-        {/each}
-      </div>
-    {/if}
 
-  <!-- Sources tab -->
-  {:else}
-    <p style="color:#6b7280;font-size:0.875rem;margin:0 0 1rem">Configure job board sources to monitor during pipeline runs.</p>
-
-    {#if sourceError}
-      <div style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:0.5rem 0.75rem;border-radius:6px;font-size:0.875rem;margin-bottom:1rem">{sourceError}</div>
-    {/if}
-
-    {#if sources.length === 0}
-      <p style="color:#9ca3af;font-size:0.875rem;margin-bottom:1rem">No sources configured yet.</p>
-    {:else}
-      <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:1.5rem">
-        {#each sources as source (source.id)}
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;border-bottom:1px solid #f3f4f6">
-            <div>
-              <p style="font-weight:500;font-size:0.875rem;margin:0">{source.label}</p>
-              <p style="font-size:0.75rem;color:#9ca3af;margin:0">{source.sourceId}</p>
-            </div>
-            <div style="display:flex;align-items:center;gap:0.75rem">
-              <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.875rem;color:#374151">
-                <input type="checkbox" checked={source.enabled} onchange={() => toggle(source.sourceId)} style="cursor:pointer" />
-                {source.enabled ? "Enabled" : "Disabled"}
-              </label>
-              <button onclick={() => removeSource(source.sourceId)} style="font-size:0.75rem;color:#dc2626;background:none;border:none;cursor:pointer;padding:0">Remove</button>
-            </div>
+          <div class="form-group">
+            <span class="form-label">Display Label</span>
+            <input
+              type="text"
+              bind:value={newLabel}
+              placeholder="e.g. Stripe"
+              class="input"
+            />
           </div>
-        {/each}
-      </div>
-    {/if}
 
-    <!-- Add source -->
-    <div style="border:1px solid #e5e7eb;border-radius:8px;padding:1rem">
-      <h2 style="font-size:0.875rem;font-weight:600;margin:0 0 0.75rem">Add Source</h2>
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-        <input
-          type="text"
-          bind:value={newSourceId}
-          placeholder="Source ID (e.g. linkedin)"
-          style="flex:1;min-width:140px;padding:0.4rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem"
-        />
-        <input
-          type="text"
-          bind:value={newLabel}
-          placeholder="Display name"
-          style="flex:1;min-width:140px;padding:0.4rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem"
-        />
-        <button
-          onclick={addSource}
-          disabled={saving || !newSourceId.trim() || !newLabel.trim()}
-          style="padding:0.4rem 1rem;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:0.875rem;cursor:pointer"
-        >{saving ? "Saving…" : "Add"}</button>
+          <button
+            onclick={addSource}
+            disabled={saving || !newSourceId.trim() || !newLabel.trim()}
+            class="btn btn-primary w-full"
+          >
+            {saving ? "Adding..." : "Add Source"}
+          </button>
+        </div>
       </div>
-    </div>
-  {/if}
+
+      <!-- Configured Sources List -->
+      <div class="card sources-list-card">
+        <h2>Active Sources</h2>
+        <p class="description">Enable or disable monitoring boards</p>
+
+        {#if sources.length === 0}
+          <div class="empty-sources">No sources configured yet.</div>
+        {:else}
+          <div class="sources-list">
+            {#each sources as source (source.id)}
+              <div class="source-item">
+                <div class="source-details">
+                  <div class="source-title-row">
+                    <span class="source-name">{source.label}</span>
+                    <span class="source-type-badge">{getSourceTypeLabel(source.sourceId)}</span>
+                  </div>
+                  <span class="source-id">{source.sourceId}</span>
+                </div>
+
+                <div class="source-controls">
+                  <label class="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={source.enabled} 
+                      onchange={() => toggle(source.sourceId)} 
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
+
+                  <button 
+                    onclick={() => removeSource(source.sourceId)} 
+                    class="remove-btn" 
+                    title="Remove Source"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </aside>
+  </div>
 </div>
+
+<style>
+  .watchlist-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.25rem;
+    background: linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+  }
+
+  .watchlist-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  @media (max-width: 960px) {
+    .watchlist-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .filter-card {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .filter-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .select-custom {
+    min-width: 140px;
+    height: 38px;
+    cursor: pointer;
+  }
+
+  .job-count-badge {
+    margin-left: auto;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+  }
+
+  @media (max-width: 640px) {
+    .job-count-badge {
+      margin-left: 0;
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  .jobs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .job-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem;
+    animation: fadeIn var(--transition-normal) forwards;
+  }
+
+  @media (max-width: 640px) {
+    .job-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .job-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  .job-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .job-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.35rem;
+  }
+
+  .job-header h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .badge-type {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--purple-text);
+    background: var(--purple-bg);
+    border: 1px solid var(--purple-border);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+  }
+
+  .job-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .separator {
+    color: var(--text-muted);
+  }
+
+  .job-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .ignore-btn:hover {
+    color: var(--danger-text) !important;
+    border-color: var(--danger-border) !important;
+    background: var(--danger-bg) !important;
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-secondary);
+  }
+
+  .spinner {
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--accent-color);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    color: var(--text-secondary);
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+  }
+
+  .empty-state h3 {
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state p {
+    font-size: 0.9rem;
+    max-width: 400px;
+    margin: 0 auto;
+    color: var(--text-muted);
+  }
+
+  /* Sources Sidebar Styling */
+  .sources-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .add-source-card h2, .sources-list-card h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+
+  .description {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .error-banner {
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger-text);
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .form-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .w-full {
+    width: 100%;
+  }
+
+  .sources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .source-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.85rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+  }
+
+  .source-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  .source-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .source-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .source-type-badge {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--accent-text);
+    background: var(--accent-bg);
+    padding: 0.05rem 0.3rem;
+    border-radius: 3px;
+  }
+
+  .source-id {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .source-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.2rem;
+    opacity: 0.6;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+  }
+
+  .remove-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .empty-sources {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  /* Custom Toggle Slider Switch */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-color);
+    transition: .2s;
+    border-radius: 20px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--text-secondary);
+    transition: .2s;
+    border-radius: 50%;
+  }
+
+  input:checked + .toggle-slider {
+    background-color: var(--accent-color);
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(16px);
+    background-color: #ffffff;
+  }
+</style>

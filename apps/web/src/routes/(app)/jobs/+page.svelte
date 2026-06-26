@@ -242,22 +242,22 @@
   <title>Jobs — Job-Ops</title>
 </svelte:head>
 
-<div style="padding:2rem;max-width:900px;margin:0 auto">
+<div class="jobs-page-container fade-in">
   <!-- Header row -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+  <header class="jobs-header">
     <div>
-      <h1 style="font-size:1.5rem;font-weight:700;margin:0">Jobs</h1>
-      <p style="color:#6b7280;font-size:0.875rem;margin-top:0.25rem">
+      <h1 class="page-title">Jobs</h1>
+      <p class="page-subtitle">
         {total} {total === 1 ? "job" : "jobs"}
-        {#if status !== "all"}with status <strong>{status}</strong>{/if}
+        {#if status !== "all"}with status <strong class="highlight-status">{status}</strong>{/if}
       </p>
     </div>
-    <div style="display:flex;align-items:center;gap:0.75rem">
+    <div class="controls-bar">
       <select
         aria-label="Filter by status"
         value={status}
         onchange={onStatusChange}
-        style="padding:0.4rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:#fff"
+        class="select status-select"
       >
         {#each STATUS_OPTIONS as opt (opt.value)}
           <option value={opt.value}>{opt.label}</option>
@@ -267,16 +267,22 @@
       <button
         onclick={() => { showImport = true; resetImport(); }}
         aria-label="Import job"
-        style="padding:0.4rem 0.85rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:#fff;cursor:pointer;color:#374151"
-      >+ Import</button>
+        class="btn btn-secondary btn-sm"
+      >
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Import
+      </button>
 
       {#if !pipelineRunning}
         <button
           onclick={() => { showConfig = !showConfig; }}
           aria-label="Pipeline settings"
           title="Configure pipeline"
-          style="padding:0.4rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:#fff;cursor:pointer;color:#374151"
-        >⚙</button>
+          class="btn btn-secondary btn-sm settings-toggle-btn"
+          class:active={showConfig}
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
       {/if}
 
       {#if pipelineRunning}
@@ -284,7 +290,7 @@
           onclick={cancelPipeline}
           disabled={cancelling}
           aria-label="Cancel pipeline"
-          style="padding:0.4rem 1rem;background:{cancelling ? '#fca5a5' : '#dc2626'};color:#fff;border:none;border-radius:6px;font-size:0.875rem;font-weight:600;cursor:{cancelling ? 'not-allowed' : 'pointer'}"
+          class="btn btn-danger btn-sm"
         >
           {cancelling ? "Cancelling…" : "Cancel"}
         </button>
@@ -294,27 +300,33 @@
         onclick={runPipeline}
         disabled={pipelineRunning}
         aria-label="Run pipeline"
-        style="padding:0.4rem 1rem;background:{pipelineRunning ? '#93c5fd' : '#2563eb'};color:#fff;border:none;border-radius:6px;font-size:0.875rem;font-weight:600;cursor:{pipelineRunning ? 'not-allowed' : 'pointer'}"
+        class="btn btn-primary btn-sm run-btn"
       >
-        {pipelineRunning ? "Running…" : "Run Pipeline"}
+        {#if pipelineRunning}
+          <span class="btn-spinner"></span>
+          Running…
+        {:else}
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Run Pipeline
+        {/if}
       </button>
     </div>
-  </div>
+  </header>
 
   <!-- Pipeline config panel -->
   {#if showConfig && !pipelineRunning}
-    <div style="margin-bottom:1.25rem;padding:1rem 1.25rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">
-      <p style="font-size:0.8rem;font-weight:600;color:#374151;margin:0 0 0.75rem">Pipeline Configuration</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem 1.5rem">
-
+    <div class="card config-panel fade-in">
+      <p class="config-title">Pipeline Configuration</p>
+      <div class="config-grid">
         <!-- Sources -->
-        <div style="grid-column:1/-1">
-          <label style="font-size:0.75rem;font-weight:500;color:#6b7280;display:block;margin-bottom:0.25rem">Job Boards</label>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <div class="form-group full-width">
+          <label class="form-label">Job Boards</label>
+          <div class="board-toggles">
             {#each SITE_OPTIONS as site (site)}
               <button
                 onclick={() => toggleSite(site)}
-                style="padding:0.25rem 0.75rem;border-radius:999px;font-size:0.75rem;font-weight:500;border:1px solid {cfgSites.includes(site) ? '#2563eb' : '#d1d5db'};background:{cfgSites.includes(site) ? '#eff6ff' : '#fff'};color:{cfgSites.includes(site) ? '#2563eb' : '#6b7280'};cursor:pointer"
+                class="board-pill-btn"
+                class:active={cfgSites.includes(site)}
               >
                 {site}
               </button>
@@ -323,41 +335,37 @@
         </div>
 
         <!-- Top N -->
-        <div>
-          <label style="font-size:0.75rem;font-weight:500;color:#6b7280;display:block;margin-bottom:0.25rem">
-            Top N jobs to process: <strong>{cfgTopN}</strong>
+        <div class="form-group">
+          <label class="form-label">
+            Top N jobs to process: <strong class="config-val">{cfgTopN}</strong>
           </label>
-          <input type="range" min="1" max="50" bind:value={cfgTopN}
-            style="width:100%;accent-color:#2563eb" />
+          <input type="range" min="1" max="50" bind:value={cfgTopN} class="range-slider" />
         </div>
 
         <!-- Min Score -->
-        <div>
-          <label style="font-size:0.75rem;font-weight:500;color:#6b7280;display:block;margin-bottom:0.25rem">
-            Min suitability score: <strong>{cfgMinScore}</strong>
+        <div class="form-group">
+          <label class="form-label">
+            Min suitability score: <strong class="config-val">{cfgMinScore}</strong>
           </label>
-          <input type="range" min="0" max="100" bind:value={cfgMinScore}
-            style="width:100%;accent-color:#2563eb" />
+          <input type="range" min="0" max="100" bind:value={cfgMinScore} class="range-slider" />
         </div>
 
         <!-- Location -->
-        <div>
-          <label style="font-size:0.75rem;font-weight:500;color:#6b7280;display:block;margin-bottom:0.25rem">Location</label>
-          <input type="text" bind:value={cfgLocation} placeholder="City or leave blank"
-            style="width:100%;padding:0.3rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.8rem;box-sizing:border-box" />
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input type="text" bind:value={cfgLocation} placeholder="City, State" class="input" />
         </div>
 
         <!-- Country -->
-        <div>
-          <label style="font-size:0.75rem;font-weight:500;color:#6b7280;display:block;margin-bottom:0.25rem">Country code</label>
-          <input type="text" bind:value={cfgCountry} placeholder="us"
-            style="width:100%;padding:0.3rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.8rem;box-sizing:border-box" />
+        <div class="form-group">
+          <label class="form-label">Country code</label>
+          <input type="text" bind:value={cfgCountry} placeholder="us" class="input" />
         </div>
 
         <!-- Remote -->
-        <div style="display:flex;align-items:center;gap:0.5rem">
-          <input type="checkbox" id="cfg-remote" bind:checked={cfgRemote} />
-          <label for="cfg-remote" style="font-size:0.8rem;color:#374151;cursor:pointer">Remote only</label>
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="cfg-remote" bind:checked={cfgRemote} class="checkbox" />
+          <label for="cfg-remote" class="checkbox-label">Remote only</label>
         </div>
       </div>
     </div>
@@ -365,43 +373,45 @@
 
   <!-- Pipeline progress log -->
   {#if pipelineLog.length > 0}
-    <div
-      style="margin-bottom:1.5rem;padding:0.75rem 1rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:0.8rem;font-family:monospace;max-height:160px;overflow-y:auto"
-      aria-label="Pipeline log"
-    >
-      {#each pipelineLog as line (line)}
-        <div>{line}</div>
-      {/each}
+    <div class="log-container fade-in">
+      <div class="log-header">
+        <span class="log-dot"></span>
+        Scraper Log output
+      </div>
+      <div class="terminal-box log-box" aria-label="Pipeline log">
+        {#each pipelineLog as line (line)}
+          <div class="log-line">{line}</div>
+        {/each}
+      </div>
     </div>
   {/if}
 
   {#if pipelineError}
-    <div
-      style="margin-bottom:1.5rem;padding:0.75rem 1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;font-size:0.875rem;color:#991b1b"
-      role="alert"
-    >
+    <div class="alert-danger fade-in" role="alert">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       {pipelineError}
     </div>
   {/if}
 
   <!-- Recent pipeline runs -->
   {#if recentRuns.length > 0 && !pipelineRunning}
-    <details style="margin-bottom:1.5rem">
-      <summary style="font-size:0.8rem;font-weight:600;color:#6b7280;cursor:pointer;user-select:none;padding:0.3rem 0">
+    <details class="recent-runs-details">
+      <summary class="recent-runs-summary">
         Recent runs ({recentRuns.length})
+        <svg class="details-chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"/></svg>
       </summary>
-      <div style="margin-top:0.5rem;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">
+      <div class="recent-runs-list">
         {#each recentRuns as run (run.id)}
-          {@const statusColor: Record<string, string> = { completed: "#15803d", failed: "#dc2626", cancelled: "#854d0e", running: "#1d4ed8" }}
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0.75rem;border-bottom:1px solid #f3f4f6;font-size:0.8rem">
-            <div style="display:flex;align-items:center;gap:0.75rem">
-              <span style="font-weight:600;color:{statusColor[run.status] ?? '#374151'};text-transform:capitalize">{run.status}</span>
-              <span style="color:#9ca3af">{new Date(run.startedAt).toLocaleString()}</span>
+          {@const statusColorClass = run.status === 'completed' ? 'text-success' : run.status === 'failed' ? 'text-danger' : run.status === 'cancelled' ? 'text-warning' : 'text-info'}
+          <div class="recent-run-row">
+            <div class="run-meta">
+              <span class="run-status {statusColorClass}">{run.status}</span>
+              <span class="run-time">{new Date(run.startedAt).toLocaleString()}</span>
             </div>
-            <div style="display:flex;gap:1rem;color:#6b7280">
-              {#if run.jobsFound > 0}<span>{run.jobsFound} found</span>{/if}
-              {#if run.jobsScored > 0}<span>{run.jobsScored} scored</span>{/if}
-              {#if run.error}<span style="color:#dc2626;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title={run.error}>{run.error}</span>{/if}
+            <div class="run-stats">
+              {#if run.jobsFound > 0}<span class="stat-tag">{run.jobsFound} found</span>{/if}
+              {#if run.jobsScored > 0}<span class="stat-tag">{run.jobsScored} scored</span>{/if}
+              {#if run.error}<span class="run-error" title={run.error}>{run.error}</span>{/if}
             </div>
           </div>
         {/each}
@@ -409,17 +419,20 @@
     </details>
   {/if}
 
+  <!-- Jobs list -->
   {#if loading}
-    <p style="color:#6b7280;text-align:center;padding:2rem">Loading…</p>
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading jobs list...</p>
+    </div>
   {:else if jobs.length === 0}
-    <div style="text-align:center;padding:3rem;border:2px dashed #e5e7eb;border-radius:8px;color:#9ca3af">
-      <p style="font-size:1rem;margin:0">No jobs found</p>
-      <p style="font-size:0.875rem;margin-top:0.5rem">
-        Run the pipeline to discover new jobs, or change the status filter.
-      </p>
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" width="36" height="36" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <p>No jobs found</p>
+      <span class="empty-hint">Run the pipeline to discover new jobs, or change the status filter.</span>
     </div>
   {:else}
-    <div style="display:flex;flex-direction:column;gap:0.75rem">
+    <div class="jobs-list">
       {#each jobs as job (job.id)}
         <JobCard {job} onaction={refetch} />
       {/each}
@@ -432,115 +445,122 @@
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div
     onclick={(e) => { if (e.target === e.currentTarget) showImport = false; }}
-    style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:50;display:flex;align-items:center;justify-content:center;padding:1rem"
+    class="modal-backdrop"
   >
-    <div style="background:#fff;border-radius:10px;width:100%;max-width:580px;box-shadow:0 20px 60px rgba(0,0,0,0.2);display:flex;flex-direction:column;max-height:90vh">
+    <div class="modal-card fade-in">
       <!-- Modal header -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid #e5e7eb">
-        <h2 style="font-size:1rem;font-weight:700;margin:0">Import Job</h2>
-        <button onclick={() => { showImport = false; }} style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:#6b7280;line-height:1">×</button>
-      </div>
+      <header class="modal-header">
+        <h2 class="modal-title">Import Job</h2>
+        <button onclick={() => { showImport = false; }} class="modal-close-btn">&times;</button>
+      </header>
 
       <!-- Tab bar -->
-      <div style="display:flex;border-bottom:1px solid #e5e7eb;padding:0 1.5rem">
+      <nav class="modal-tabs">
         {#each ([["url","From URL"],["text","Paste Text"],["manual","Manual"]] as const) as [t, label] (t)}
           <button
             onclick={() => { importTab = t; }}
-            style="padding:0.75rem 1rem;border:none;background:none;font-size:0.875rem;font-weight:{importTab === t ? 600 : 400};color:{importTab === t ? '#1d4ed8' : '#6b7280'};border-bottom:{importTab === t ? '2px solid #1d4ed8' : '2px solid transparent'};margin-bottom:-1px;cursor:pointer"
+            class="modal-tab-btn"
+            class:active={importTab === t}
           >{label}</button>
         {/each}
-      </div>
+      </nav>
 
-      <div style="padding:1.25rem 1.5rem;overflow-y:auto;flex:1">
+      <div class="modal-body">
         {#if importError}
-          <div style="margin-bottom:1rem;padding:0.6rem 0.75rem;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;font-size:0.8rem;color:#dc2626">{importError}</div>
+          <div class="modal-alert-danger">{importError}</div>
         {/if}
 
         <!-- From URL -->
         {#if importTab === "url"}
-          <label style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.875rem;font-weight:500;color:#374151">
-            Job posting URL
+          <div class="form-group">
+            <label class="form-label">Job posting URL</label>
             <input
               type="url"
               bind:value={importUrl}
               placeholder="https://linkedin.com/jobs/view/..."
-              style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;width:100%;box-sizing:border-box"
+              class="input"
             />
-          </label>
-          <button
-            onclick={parseFromUrl}
-            disabled={!importUrl.trim() || importParsing}
-            style="margin-top:1rem;padding:0.5rem 1.25rem;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:0.875rem;cursor:pointer;opacity:{importParsing ? 0.6 : 1}"
-          >{importParsing ? "Fetching…" : "Fetch & Parse"}</button>
-          <p style="font-size:0.75rem;color:#9ca3af;margin-top:0.5rem">Requires the extractor sidecar to be running.</p>
+            <button
+              onclick={parseFromUrl}
+              disabled={!importUrl.trim() || importParsing}
+              class="btn btn-primary btn-sm import-action-btn"
+            >
+              {#if importParsing}
+                <span class="btn-spinner"></span>
+                Fetching…
+              {:else}
+                Fetch & Parse
+              {/if}
+            </button>
+            <p class="import-help-text">Requires the Python extractor sidecar service to be running.</p>
+          </div>
 
         <!-- Paste text -->
         {:else if importTab === "text"}
-          <label style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.875rem;font-weight:500;color:#374151">
-            Paste job description
+          <div class="form-group">
+            <label class="form-label">Paste job description</label>
             <textarea
               bind:value={importText}
               rows="8"
-              placeholder="Paste the full job description here…"
-              style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;font-family:inherit;resize:vertical;width:100%;box-sizing:border-box"
+              placeholder="Paste the full text of the job description here..."
+              class="textarea"
             ></textarea>
-          </label>
-          <button
-            onclick={parseFromText}
-            disabled={importText.trim().length < 50 || importParsing}
-            style="margin-top:1rem;padding:0.5rem 1.25rem;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:0.875rem;cursor:pointer;opacity:{importParsing ? 0.6 : 1}"
-          >{importParsing ? "Parsing…" : "Parse Text"}</button>
+            <button
+              onclick={parseFromText}
+              disabled={importText.trim().length < 50 || importParsing}
+              class="btn btn-primary btn-sm import-action-btn"
+            >
+              {#if importParsing}
+                <span class="btn-spinner"></span>
+                Parsing…
+              {:else}
+                Parse Text
+              {/if}
+            </button>
+          </div>
 
         <!-- Manual form -->
         {:else}
-          <div style="display:grid;gap:0.75rem">
-            <label style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:500;color:#374151">
-              Title <span style="color:#ef4444">*</span>
-              <input type="text" bind:value={importForm.title} placeholder="Software Engineer"
-                style="padding:0.45rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem" />
-            </label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-              <label style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:500;color:#374151">
-                Employer
-                <input type="text" bind:value={importForm.employer} placeholder="Acme Corp"
-                  style="padding:0.45rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem" />
-              </label>
-              <label style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:500;color:#374151">
-                Location
-                <input type="text" bind:value={importForm.location} placeholder="Remote / New York"
-                  style="padding:0.45rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem" />
-              </label>
+          <div class="manual-form-grid">
+            <div class="form-group">
+              <label class="form-label">Title <span class="required">*</span></label>
+              <input type="text" bind:value={importForm.title} placeholder="Software Engineer" class="input" />
             </div>
-            <label style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:500;color:#374151">
-              Job posting URL
-              <input type="url" bind:value={importForm.url} placeholder="https://…"
-                style="padding:0.45rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem" />
-            </label>
-            <label style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:500;color:#374151">
-              Job description
-              <textarea bind:value={importForm.jobDescription} rows="5" placeholder="Paste or type the job description…"
-                style="padding:0.45rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;font-family:inherit;resize:vertical"></textarea>
-            </label>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
-              <label style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:500;color:#374151">
-                Min salary
-                <input type="number" bind:value={importForm.salaryMin} placeholder="60000"
-                  style="padding:0.45rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem" />
-              </label>
-              <label style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:500;color:#374151">
-                Max salary
-                <input type="number" bind:value={importForm.salaryMax} placeholder="90000"
-                  style="padding:0.45rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem" />
-              </label>
-              <label style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.8rem;font-weight:500;color:#374151">
-                Currency
-                <input type="text" bind:value={importForm.salaryCurrency} placeholder="USD"
-                  style="padding:0.45rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem" />
-              </label>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">Employer</label>
+                <input type="text" bind:value={importForm.employer} placeholder="Acme Corp" class="input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" bind:value={importForm.location} placeholder="Remote / New York" class="input" />
+              </div>
             </div>
-            <div style="display:flex;align-items:center;gap:0.5rem">
-              <input type="checkbox" id="imp-remote" bind:checked={importForm.isRemote} />
-              <label for="imp-remote" style="font-size:0.875rem;color:#374151;cursor:pointer">Remote</label>
+            <div class="form-group">
+              <label class="form-label">Job posting URL</label>
+              <input type="url" bind:value={importForm.url} placeholder="https://…" class="input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Job description</label>
+              <textarea bind:value={importForm.jobDescription} rows="5" placeholder="Paste or type the job description…" class="textarea"></textarea>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label class="form-label">Min salary</label>
+                <input type="number" bind:value={importForm.salaryMin} placeholder="60000" class="input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max salary</label>
+                <input type="number" bind:value={importForm.salaryMax} placeholder="90000" class="input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Currency</label>
+                <input type="text" bind:value={importForm.salaryCurrency} placeholder="USD" class="input" />
+              </div>
+            </div>
+            <div class="form-group checkbox-group">
+              <input type="checkbox" id="imp-remote" bind:checked={importForm.isRemote} class="checkbox" />
+              <label for="imp-remote" class="checkbox-label">Remote Position</label>
             </div>
           </div>
         {/if}
@@ -548,18 +568,506 @@
 
       <!-- Footer -->
       {#if importTab === "manual"}
-        <div style="padding:1rem 1.5rem;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:0.5rem">
-          <button onclick={() => { showImport = false; }}
-            style="padding:0.45rem 1rem;background:#f3f4f6;color:#374151;border:none;border-radius:6px;font-size:0.875rem;cursor:pointer">
+        <footer class="modal-footer">
+          <button onclick={() => { showImport = false; }} class="btn btn-secondary">
             Cancel
           </button>
           <button
             onclick={submitImport}
             disabled={!importForm.title.trim() || importSaving}
-            style="padding:0.45rem 1.25rem;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:0.875rem;cursor:pointer;opacity:{importSaving ? 0.6 : 1}"
-          >{importSaving ? "Importing…" : "Import Job"}</button>
-        </div>
+            class="btn btn-primary"
+          >
+            {#if importSaving}
+              <span class="btn-spinner"></span>
+              Importing…
+            {:else}
+              Import Job
+            {/if}
+          </button>
+        </footer>
       {/if}
     </div>
   </div>
 {/if}
+
+<style>
+  .jobs-page-container {
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .jobs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1.25rem;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+  }
+
+  .page-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+  }
+
+  .highlight-status {
+    color: var(--accent-text);
+  }
+
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  .status-select {
+    width: auto;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+    font-size: 0.85rem;
+  }
+
+  .settings-toggle-btn.active {
+    background-color: var(--accent-bg);
+    border-color: var(--accent-color);
+    color: var(--accent-text);
+  }
+
+  .run-btn {
+    min-width: 130px;
+  }
+
+  .btn-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* Configuration Panel */
+  .config-panel {
+    background-color: var(--bg-sidebar);
+    border-color: var(--border-color);
+  }
+
+  .config-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  .board-toggles {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .board-pill-btn {
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-app);
+    color: var(--text-secondary);
+    padding: 0.35rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 99px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .board-pill-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+  }
+
+  .board-pill-btn.active {
+    background-color: var(--accent-bg);
+    border-color: var(--accent-color);
+    color: var(--accent-text);
+  }
+
+  .config-val {
+    color: var(--accent-text);
+  }
+
+  .range-slider {
+    width: 100%;
+    accent-color: var(--accent-color);
+    background-color: var(--border-color);
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .checkbox-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .checkbox {
+    accent-color: var(--accent-color);
+    cursor: pointer;
+  }
+
+  .checkbox-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* Log Panel */
+  .log-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .log-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .log-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--success-color);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--success-color);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+  }
+
+  .log-box {
+    max-height: 150px;
+    background-color: #060608;
+  }
+
+  .log-line {
+    padding: 0.1rem 0;
+  }
+
+  .alert-danger {
+    background-color: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger-text);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  /* Recent Runs Details */
+  .recent-runs-details {
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-card);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .recent-runs-summary {
+    padding: 0.65rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color var(--transition-fast);
+  }
+
+  .recent-runs-summary:hover {
+    background-color: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
+
+  .recent-runs-details[open] .details-chevron {
+    transform: rotate(180deg);
+  }
+
+  .details-chevron {
+    transition: transform var(--transition-fast);
+    opacity: 0.7;
+  }
+
+  .recent-runs-list {
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(0,0,0,0.15);
+  }
+
+  .recent-run-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .recent-run-row:last-child {
+    border-bottom: none;
+  }
+
+  .run-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .run-status {
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .text-success { color: var(--success-text); }
+  .text-danger { color: var(--danger-text); }
+  .text-warning { color: var(--warning-text); }
+  .text-info { color: var(--info-text); }
+
+  .run-time {
+    color: var(--text-muted);
+  }
+
+  .run-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .stat-tag {
+    background-color: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+  }
+
+  .run-error {
+    color: var(--danger-text);
+    font-size: 0.75rem;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* List & States */
+  .jobs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .loading-state, .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 2rem;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    background-color: var(--bg-card);
+  }
+
+  .empty-hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 320px;
+    text-align: center;
+  }
+
+  /* Modal Styles */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  .modal-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 600px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    overflow: hidden;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+    transition: color var(--transition-fast);
+  }
+
+  .modal-close-btn:hover {
+    color: var(--text-primary);
+  }
+
+  .modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 1.5rem;
+    background-color: rgba(0,0,0,0.1);
+  }
+
+  .modal-tab-btn {
+    padding: 0.85rem 1.25rem;
+    border: none;
+    background: none;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .modal-tab-btn:hover {
+    color: var(--text-primary);
+  }
+
+  .modal-tab-btn.active {
+    color: var(--accent-text);
+    border-bottom-color: var(--accent-color);
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .modal-alert-danger {
+    background-color: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger-text);
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+  }
+
+  .import-action-btn {
+    align-self: flex-start;
+    margin-top: 0.5rem;
+  }
+
+  .import-help-text {
+    font-size: 0.725rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+  }
+
+  .manual-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .required {
+    color: var(--danger-color);
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    background-color: rgba(0,0,0,0.1);
+  }
+</style>

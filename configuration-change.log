@@ -1,5 +1,13 @@
 # Configuration Change Log
 
+## [2026-06-26] Greenhouse Workspace Package & Adapter Configuration
+
+### Package Workspace Configurations
+- **career-boards/greenhouse**: Initialized a new workspace package `@career-boards/greenhouse` containing Greenhouse boards API integrations.
+- **orchestrator/tsconfig.json**, **orchestrator/tsconfig.server.json**: Map paths for `@career-boards/greenhouse` to allow resolution of the package in typescript builds.
+- **orchestrator/vite.config.ts**: Configured path mapping/aliases to bundle the Greenhouse package.
+- **orchestrator/src/server/watchlist/adapters/index.ts**: Imported and registered the `greenhouseWatchlistAdapter` into the global adapter registry.
+
 ## [2026-06-21] apps/web Project-Level Env Convention
 
 ### Nx Project Environment Resolution
@@ -52,4 +60,10 @@
 
 ### Environment Schema Updates
 - **Verification Environment Variables**: Added placeholder configuration mappings in `.env.example` defining database credentials for the background service execution.
+
+## [2026-06-25] First Pipeline Guide Documentation
+
+### Documentation updates
+- **README.md**: Added a "Running Your First Job Search Pipeline (Matched Against Resume)" guide, listing step-by-step instructions, local execution command lines, and common troubleshooting resolutions for `EXTRACTOR_URL` setup, FastAPI connectivity errors, LLM configuration fallbacks, and JobSpy empty result scenarios.
+
 

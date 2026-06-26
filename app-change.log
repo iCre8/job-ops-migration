@@ -1,5 +1,22 @@
 # Application Change Log
 
+## [2026-06-26] apps/web SvelteKit Visual Design Redesign
+
+### Design System & Layout
+- **apps/web/src/global.css**: Created a comprehensive, modern **Elevated Industrial Utilitarian** dark-themed design system using CSS variables, custom typography (Geist and Geist Mono from Google Fonts), unified styling for forms/buttons/inputs, tactile shadows, card classes, and subtle micro-animations.
+- **apps/web/src/routes/+layout.svelte**: Imported the global stylesheet for application-wide layout cohesion.
+- **apps/web/src/routes/(app)/+layout.svelte**: Redesigned the main app navigation layout. Replaced inline styles with a modern sidebar, hover/active highlight indicators, responsive page container, and custom SVG icons for all sections.
+
+### Pages & Components Visual Redesign
+- **apps/web/src/routes/(app)/overview/+page.svelte**: Completely overhauled the dashboard layout. Redesigned metric statistic cards, styled the "Applications per Day" chart as a modern high-contrast column bar chart, and added styled progress indicators for both the application funnel and source response rates.
+- **apps/web/src/routes/(app)/jobs/+page.svelte**: Polished the scraper controls, recent runs table, and progress log panel (using a custom styled terminal-style container). Fully redesigned the "Import Job" modal into a clean, modern modal panel with tabbed navigation and consistent input fields.
+- **apps/web/src/routes/(app)/watchlist/+page.svelte**: Overhauled the Watchlist page. Replaced basic inline styles with a premium dark-themed two-column layout: a list of discovered opportunities in the main area with custom statuses and filter dropdowns, and a sidebar for managing and adding career board sources.
+- **apps/web/src/lib/components/JobCard.svelte**: Overhauled individual job listing elements to use the new design variables, custom status tags, suitability score rings with green/yellow/red color bands, and smooth hover elevation transitions.
+
+### Watchlist Adapters & Pipeline Scripts
+- **orchestrator/src/server/watchlist/adapters/greenhouse.ts**: Implemented the `WatchlistCatalogSourceAdapter` interface for Greenhouse boards. It maps and fetches jobs using the public boards API and parses details.
+- **orchestrator/scripts/seed-demo.ts**: Fixed TypeScript compile errors by casting `status` values to the correct database-level literal values (`"ready" as const` and `"applied" as const`).
+
 ## [2026-06-21] apps/web Admin User Seeding
 
 ### Prisma Seed Flow

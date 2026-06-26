@@ -32,7 +32,7 @@ async function seedDemoData() {
         deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         jobDescription:
           "We are looking for a talented Senior Software Engineer with 5+ years of experience...",
-        status: "saved",
+        status: "ready" as const,
         suitabilityScore: 92,
         suitabilityReason: "Excellent match for your React and TypeScript skills",
         tailoredSummary: null,
@@ -57,7 +57,7 @@ async function seedDemoData() {
         deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         jobDescription:
           "Build scalable web applications with Node.js and React...",
-        status: "applied",
+        status: "applied" as const,
         suitabilityScore: 87,
         suitabilityReason: "Great fit for full stack position",
         tailoredSummary: null,
@@ -82,7 +82,7 @@ async function seedDemoData() {
         deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
         jobDescription:
           "Manage and optimize cloud infrastructure on AWS and Kubernetes...",
-        status: "saved",
+        status: "ready" as const,
         suitabilityScore: 79,
         suitabilityReason: "Good DevOps background match",
         tailoredSummary: null,
