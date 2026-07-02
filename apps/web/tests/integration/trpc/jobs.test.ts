@@ -2,7 +2,7 @@
  * Phase 4 — tRPC Jobs Router Integration Tests
  *
  * Uses MongoMemoryReplSet (single-node replica set) because Prisma v6 requires
- * a replica set to run transactions (deleteMany). See ISSUE-002 in issues-log.md.
+ * a replica set to run transactions (deleteMany). See ISSUE-002 in logs/issues-log.md.
  *
  * Tests the full round-trip: insert via Prisma → query/mutate via tRPC caller.
  * No HTTP layer — createCallerFactory bypasses the SvelteKit handler entirely.

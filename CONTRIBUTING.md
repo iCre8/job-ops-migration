@@ -192,7 +192,7 @@ CI runs on Node 22. If local behavior differs, verify with Node 22 before conclu
 
 ## Project-Specific Standards (Link-First)
 
-Before editing server routes/services, read [`AGENTS.md`](./AGENTS.md) for repository standards, especially:
+Before editing server routes/services, read [`project-notes/AGENTS.md`](./project-notes/AGENTS.md) for repository standards, especially:
 
 - `/api/*` response contract and status/code mapping
 - Correlation/request IDs (`x-request-id`) and logging context

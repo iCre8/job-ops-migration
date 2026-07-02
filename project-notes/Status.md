@@ -1,7 +1,7 @@
 # Status.md
 # Job-Ops Migration — Live Progress Tracker
 
-> **Instructions:** See `Init-instruction.md` at repo root before editing this file.
+> **Instructions:** See `Init-instruction.md` in project-notes before editing this file.
 > Updated by Claude Code at session start and after each completed task.
 
 ---

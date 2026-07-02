@@ -5,8 +5,8 @@
 > - Architecture decisions and full schemas: `application-plan.md`
 > - Modularity enhancements for legacy stack: `Modularity-Enhancement.md`
 > - How to use these documents: `Init-instruction.md`
-> - Living progress tracker: `job-ops-migration/Status.md`
-> - Issue tracking: `job-ops-migration/issues-log.md`
+> - Living progress tracker: `Status.md`
+> - Issue tracking: `../logs/issues-log.md`
 
 ---
 
@@ -61,10 +61,10 @@ loop on the new stack. PDF generation, Gmail tracking, and the full E2E suite ar
 ### Gate Types
 
 **Hard Gate** — The next phase cannot begin until the current phase passes all thresholds.
-A failed hard gate must be logged in `issues-log.md` with a full RCA before any remediation
+A failed hard gate must be logged in `../logs/issues-log.md` with a full RCA before any remediation
 work starts.
 
-**Soft Gate** — Failure is logged in `issues-log.md`. Work on the next phase may begin with
+**Soft Gate** — Failure is logged in `../logs/issues-log.md`. Work on the next phase may begin with
 a documented exception recorded in `Status.md`. The exception must be resolved before the
 phase is marked `COMPLETE`.
 
@@ -644,7 +644,7 @@ A phase is **COMPLETE** when:
 5. ESLint reports zero errors
 6. `svelte-check` reports zero type errors
 7. `Status.md` is updated to reflect the phase completion
-8. Any issues discovered during the phase are logged in `issues-log.md` with RCA
+8. Any issues discovered during the phase are logged in `../logs/issues-log.md` with RCA
 
 ---
 

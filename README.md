@@ -133,8 +133,8 @@ We have resolved this with two fallback configurations:
 
 ## Change Tracking Logs
 
-We maintain three dedicated changelogs in the repository root to log updates systematically:
-- [app-change.log](file:///home/s4developer/engineering-projects/job-ops-migration/app-change.log): Tracks application, service, repository, and component logic changes.
-- [infrastructure-change.log](file:///home/s4developer/engineering-projects/job-ops-migration/infrastructure-change.log): Tracks database engines, test environments, and hosting changes.
-- [configuration-change.log](file:///home/s4developer/engineering-projects/job-ops-migration/configuration-change.log): Tracks packages, tooling, scripts, and environment variable configuration changes.
+We maintain three dedicated changelogs in the repository logs directory to log updates systematically:
+- [app-change.log](logs/app-change.log): Tracks application, service, repository, and component logic changes.
+- [infrastructure-change.log](logs/infrastructure-change.log): Tracks database engines, test environments, and hosting changes.
+- [configuration-change.log](logs/configuration-change.log): Tracks packages, tooling, scripts, and environment variable configuration changes.
 

@@ -10,12 +10,12 @@ every work session before touching any code.
 
 | Document | Location | Purpose | Update frequency |
 |---|---|---|---|
-| `build-process.md` | repo root | Master plan — phases, gates, RACI, CRC | Rarely (only when scope changes) |
-| `application-plan.md` | repo root | Full architecture — schemas, code examples | Rarely (reference only) |
-| `Modularity-Enhancement.md` | repo root | Enhancements for legacy stack | As enhancements are implemented |
-| `Init-instruction.md` | repo root | This file — how to operate | Rarely |
-| `Status.md` | `job-ops-migration/` | Living progress tracker | Every session start + after each task |
-| `issues-log.md` | `job-ops-migration/` | Issue tracking with RCA | Whenever an issue is found |
+| `build-process.md` | project-notes | Master plan — phases, gates, RACI, CRC | Rarely (only when scope changes) |
+| `application-plan.md` | project-notes | Full architecture — schemas, code examples | Rarely (reference only) |
+| `Modularity-Enhancement.md` | project-notes | Enhancements for legacy stack | As enhancements are implemented |
+| `Init-instruction.md` | project-notes | This file — how to operate | Rarely |
+| `Status.md` | project-notes | Living progress tracker | Every session start + after each task |
+| `../logs/issues-log.md` | logs | Issue tracking with RCA | Whenever an issue is found |
 
 ---
 
@@ -24,7 +24,7 @@ every work session before touching any code.
 At the start of every Claude Code session, before writing a single line of code:
 
 1. **Read `Status.md`** — identify the current phase and any open blockers
-2. **Read `issues-log.md`** — check for any unresolved P1-Critical issues; these must be
+2. **Read `../logs/issues-log.md`** — check for any unresolved P1-Critical issues; these must be
    addressed before new feature work
 3. **Read the current phase section** in `build-process.md` — review deliverables and test
    requirements
@@ -56,7 +56,7 @@ Only modify this document when:
 - A phase gate threshold is formally changed (requires Product Owner approval)
 
 Do **not** use `build-process.md` to record progress or issues — that belongs in
-`Status.md` and `issues-log.md`.
+`Status.md` and `../logs/issues-log.md`.
 
 ---
 
@@ -79,7 +79,7 @@ Do **not** use `build-process.md` to record progress or issues — that belongs 
 - After **a phase gate is passed** — update the phase row to `COMPLETE` and record
   test scores
 - After **a phase gate fails** — update the phase row to `BLOCKED`, record the failure reason,
-  and log the issue in `issues-log.md`
+  and log the issue in `../logs/issues-log.md`
 
 ### Phase status values
 
@@ -88,7 +88,7 @@ Do **not** use `build-process.md` to record progress or issues — that belongs 
 | `NOT STARTED` | No work has begun |
 | `IN PROGRESS` | Active development |
 | `GATE PENDING` | All deliverables complete; awaiting test run and gate check |
-| `BLOCKED` | Gate failed or dependency unresolved; see issues-log.md |
+| `BLOCKED` | Gate failed or dependency unresolved; see `../logs/issues-log.md` |
 | `COMPLETE` | Gate passed; test scores recorded |
 
 ### Recording a gate result
@@ -101,7 +101,7 @@ When a phase gate is checked, add the following to the phase row:
 
 ---
 
-## How to Use `issues-log.md`
+## How to Use `../logs/issues-log.md`
 
 ### When to create a new issue
 
@@ -145,7 +145,7 @@ OPEN → IN PROGRESS → RESOLVED → CLOSED
 An issue is `CLOSED` only when:
 1. The resolution has been implemented and committed
 2. The test that would have caught the issue now exists and passes
-3. The issue entry in `issues-log.md` has been updated with the final resolution
+3. The issue entry in `../logs/issues-log.md` has been updated with the final resolution
 
 ---
 
@@ -162,7 +162,7 @@ When you believe a phase is ready for its gate check:
    - Proceed to the next phase
 6. If **any threshold is not met:**
    - Update phase status to `BLOCKED` in `Status.md`
-   - Create an issue in `issues-log.md` with full RCA
+   - Create an issue in `../logs/issues-log.md` with full RCA
    - If it is a **hard gate**: stop all forward progress until resolved
    - If it is a **soft gate**: document the exception in `Status.md`, get PO acknowledgement,
      then proceed with the exception noted
@@ -174,7 +174,7 @@ When you believe a phase is ready for its gate check:
 Before ending a session:
 
 1. Update `Status.md` — record what was completed, what was not, and what the next task is
-2. Ensure all open issues have at least an RCA started in `issues-log.md`
+2. Ensure all open issues have at least an RCA started in `../logs/issues-log.md`
 3. Commit all work-in-progress with a clear commit message referencing the phase
 4. If mid-phase, leave a `# TODO` comment in the relevant file indicating the next step
 
@@ -182,7 +182,7 @@ Before ending a session:
 
 ## Notes for Claude Code
 
-- Always read `Status.md` and `issues-log.md` before proposing or writing code
+- Always read `Status.md` and `../logs/issues-log.md` before proposing or writing code
 - Never advance a phase that has an unresolved P1-Critical issue
 - When implementing, refer to `application-plan.md` for full code examples — do not
   invent architecture not documented there without flagging it first

@@ -1,7 +1,7 @@
 # issues-log.md
 # Job-Ops Migration — Issue Tracker
 
-> **Instructions:** See `Init-instruction.md` at repo root for issue creation rules,
+> **Instructions:** See `Init-instruction.md` in project-notes for issue creation rules,
 > severity definitions, and RCA requirements. Every issue must reach CLOSED status before
 > its phase can be marked COMPLETE.
 

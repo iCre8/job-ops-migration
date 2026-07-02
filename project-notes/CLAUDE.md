@@ -112,7 +112,7 @@ Pure business logic, no tRPC coupling:
 
 `getPrisma()` returns a singleton `PrismaClient`. In tests, use `createTestClient(url)` to inject a URL pointing at the in-memory replica set.
 
-**Prisma v6 lock:** Do not upgrade to v7 — `@prisma/adapter-mongodb` is unpublished for v7. See `issues-log.md` ISSUE-001.
+**Prisma v6 lock:** Do not upgrade to v7 — `@prisma/adapter-mongodb` is unpublished for v7. See `../logs/issues-log.md` ISSUE-001.
 
 ### Migration Progress
 

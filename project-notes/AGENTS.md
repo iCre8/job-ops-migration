@@ -31,9 +31,9 @@ For tests, `@electric-sql/pglite` provides an in-memory PostgreSQL engine. Tests
 Use concise, imperative commit messages. PRs should identify affected projects, list verification commands, and include screenshots for UI changes. Preserve the upstream orchestrator UI unless a UI change is intentional.
 
 **Update Change Logs:** After significant changes, update the relevant changelog:
-- `app-change.log` — Application, service, repository, component logic
-- `infrastructure-change.log` — Database engines, test environments, hosting
-- `configuration-change.log` — Packages, tooling, scripts, env variables
+- `../logs/app-change.log` — Application, service, repository, component logic
+- `../logs/infrastructure-change.log` — Database engines, test environments, hosting
+- `../logs/configuration-change.log` — Packages, tooling, scripts, env variables
 
 See [Status.md](Status.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for phase tracking and contributor workflow.
 
